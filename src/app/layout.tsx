@@ -1,24 +1,31 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { Toaster } from '@/components/ui/sonner';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { Metadata } from "next";
+import { Sora, Manrope } from "next/font/google";
+import "./globals.css";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ['latin'] });
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+});
 
 export const metadata: Metadata = {
-  title: 'NutriLens AI - Smart Nutrition Coaching',
-  description: 'AI-powered meal planning and nutrition tracking',
+  title: "NutriLens AI - Performance Nutrition OS",
+  description: "AI-powered meal planning, inventory intelligence, and nutrition coaching.",
 };
 
-import { QueryProvider } from "@/providers/QueryProvider";
-
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${sora.variable} ${manrope.variable} font-sans antialiased`}>
         <QueryProvider>
           {children}
+          <Toaster richColors position="top-right" />
         </QueryProvider>
       </body>
     </html>

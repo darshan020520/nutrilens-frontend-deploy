@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Calendar, Package, TrendingUp } from "lucide-react";
+import { UtensilsCrossed, Calendar, Package, Bot } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function QuickActions() {
   const router = useRouter();
@@ -10,68 +9,94 @@ export function QuickActions() {
   const actions = [
     {
       icon: UtensilsCrossed,
-      label: "Log Meal",
-      description: "Record what you ate",
-      onClick: () => {
-        toast.info("Meal logging coming soon!");
-        // router.push("/dashboard/meals");
-      },
-      variant: "default" as const,
+      label: "Log Meals",
+      description: "Track planned or external meals",
+      onClick: () => router.push("/dashboard/meals?tab=today"),
+      active: true,
     },
     {
       icon: Calendar,
-      label: "Generate Plan",
-      description: "Create meal plan",
-      onClick: () => {
-        toast.info("Meal planning coming soon!");
-        // router.push("/dashboard/meal-plans");
-      },
-      variant: "outline" as const,
+      label: "Weekly Plan",
+      description: "Review and swap upcoming meals",
+      onClick: () => router.push("/dashboard/meals?tab=week"),
+      active: false,
     },
     {
       icon: Package,
-      label: "Add Inventory",
-      description: "Update your pantry",
-      onClick: () => {
-        toast.info("Inventory management coming soon!");
-        // router.push("/dashboard/inventory");
-      },
-      variant: "outline" as const,
+      label: "Pantry Ops",
+      description: "Manage inventory and restock",
+      onClick: () => router.push("/dashboard/inventory"),
+      active: false,
     },
     {
-      icon: TrendingUp,
-      label: "View Progress",
-      description: "Check your stats",
-      onClick: () => {
-        toast.info("Progress tracking coming soon!");
-        // router.push("/dashboard/progress");
-      },
-      variant: "outline" as const,
+      icon: Bot,
+      label: "Ask AI Coach",
+      description: "Context-aware nutrition guidance",
+      onClick: () => router.push("/dashboard/nutrition/chat"),
+      active: false,
     },
   ];
 
   return (
-    <Card className="mb-8">
-      <CardContent className="pt-6">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3
+            className="text-[17px] font-medium text-slate-900"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            Next Actions
+          </h3>
+          <p className="text-[11.5px] text-slate-400 font-medium">One-click workflows</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {actions.map((action) => {
             const Icon = action.icon;
             return (
-              <Button
+              <button
                 key={action.label}
-                variant={action.variant}
-                className="h-auto flex-col items-start p-4 gap-2"
+                type="button"
                 onClick={action.onClick}
+                className={cn(
+                  "group/action flex flex-col items-start gap-3 rounded-[14px] p-4 text-left transition-all duration-250",
+                  action.active
+                    ? "bg-gradient-to-br from-[#1B7D5A] to-[#22956B] shadow-[0_4px_20px_rgba(27,125,90,0.25)] hover:shadow-[0_6px_24px_rgba(27,125,90,0.3)]"
+                    : "border border-slate-150 bg-white hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)]"
+                )}
               >
-                <Icon className="h-5 w-5 mb-1" />
-                <div className="text-left">
-                  <div className="font-medium">{action.label}</div>
-                  <div className="text-xs text-muted-foreground font-normal">
+                {/* Icon box */}
+                <div
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-[10px] transition-colors",
+                    action.active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-50 text-slate-500 group-hover/action:bg-emerald-50 group-hover/action:text-emerald-600"
+                  )}
+                >
+                  <Icon className="h-[17px] w-[17px]" />
+                </div>
+
+                {/* Text */}
+                <div>
+                  <div
+                    className={cn(
+                      "text-[13.5px] font-semibold",
+                      action.active ? "text-white" : "text-slate-900"
+                    )}
+                  >
+                    {action.label}
+                  </div>
+                  <div
+                    className={cn(
+                      "mt-0.5 text-[11.5px] leading-snug",
+                      action.active ? "text-white/65" : "text-slate-400"
+                    )}
+                  >
                     {action.description}
                   </div>
                 </div>
-              </Button>
+              </button>
             );
           })}
         </div>

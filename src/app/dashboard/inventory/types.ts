@@ -10,6 +10,7 @@ export interface InventoryItem {
   expiry_date: string | null;
   days_until_expiry: number | null;
   is_depleted: boolean;
+  is_low_stock?: boolean;
 }
 
 export interface InventoryStatus {
@@ -19,6 +20,11 @@ export interface InventoryStatus {
     item_name: string;
     quantity_grams: number;
     days_until_expiry: number;
+  }>;
+  expired_items?: Array<{
+    item_name: string;
+    quantity_grams: number;
+    days_overdue: number;
   }>;
   low_stock: Array<{
     item_name: string;
@@ -52,10 +58,18 @@ export interface AddItemsResult {
       confidence: number;
       quantity?: number;
       unit?: string;
+      action?: string;
+      suggested_name?: string;
+      category?: string;
+      quantity_grams?: number;
+      original_text?: string;
+      error?: string;
     }>;
     failed: Array<{
       original: string;
       reason: string;
+      original_text?: string;
+      error?: string;
     }>;
     summary: {
       successful: number;
@@ -99,13 +113,11 @@ export interface PendingItem {
   confidence: number;
 }
 
-// Enriched receipt pending item (from new enrichment pipeline)
 export interface EnrichedPendingItem {
   id: number;
-  item_name: string; // Original from receipt
+  item_name: string;
   quantity: number;
   unit: string;
-  // Enrichment data from FDC + LLM pipeline
   canonical_name: string | null;
   category: string | null;
   fdc_id: string | null;
@@ -154,7 +166,7 @@ export interface ExpiringItem {
   quantity_grams: number;
   expiry_date: string;
   days_remaining: number;
-  priority: 'urgent' | 'high' | 'medium';
+  priority: "urgent" | "high" | "medium" | "expired";
   recipe_suggestions: Array<{
     recipe_id: number;
     recipe_name: string;
@@ -183,14 +195,26 @@ export interface RestockList {
   shopping_strategy: string[];
 }
 
+export interface AIRecipeIngredient {
+  name: string;
+  quantity_grams: number;
+}
+
 export interface AIRecipeSuggestion {
   name: string;
   description: string;
-  ingredients_used: string[];
+  cuisine: string;
+  ingredients: AIRecipeIngredient[];
+  instructions: string[];
   estimated_prep_time_min: number;
   estimated_calories: number;
   estimated_protein_g: number;
+  estimated_carbs_g: number;
+  estimated_fat_g: number;
   difficulty: string;
+  suitable_meal_times: string[];
+  goals: string[];
+  dietary_tags: string[];
 }
 
 export interface BulkAddFromRestockItem {
@@ -215,11 +239,11 @@ export interface BulkAddFromRestockResponse {
   }>;
 }
 
-export type ViewMode = 'grid' | 'list';
+export type ViewMode = "grid" | "list";
 
 export type FilterOptions = {
   category?: string;
   lowStockOnly: boolean;
   expiringSoon: boolean;
-  searchQuery: string;
+  searchQuery?: string;
 };
