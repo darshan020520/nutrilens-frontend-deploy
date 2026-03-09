@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -106,7 +106,7 @@ function recipeMatchesFilter(recipe: MakeableRecipeItem, filter: string): boolea
   return haystack.includes(filter);
 }
 
-export default function KitchenPage() {
+function KitchenPageContent() {
   const searchParams = useSearchParams();
   const ingredientFilter = normalizeName(searchParams.get("ingredient") ?? "");
 
@@ -1072,6 +1072,24 @@ export default function KitchenPage() {
         }
       `}</style>
     </DashboardLayout>
+  );
+}
+
+function KitchenPageFallback() {
+  return (
+    <DashboardLayout>
+      <div className="space-y-14">
+        <DashboardPageLoader scene="kitchen" />
+      </div>
+    </DashboardLayout>
+  );
+}
+
+export default function KitchenPage() {
+  return (
+    <Suspense fallback={<KitchenPageFallback />}>
+      <KitchenPageContent />
+    </Suspense>
   );
 }
 

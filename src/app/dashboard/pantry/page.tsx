@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Camera, Plus, Search, Trash2, Weight } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ function formatCategoryLabel(category: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default function PantryPage() {
+function PantryPageContent() {
   const searchParams = useSearchParams();
   const heroRef = useRef<HTMLElement | null>(null);
 
@@ -859,6 +859,26 @@ export default function PantryPage() {
         }
       `}</style>
     </DashboardLayout>
+  );
+}
+
+function PantryPageFallback() {
+  return (
+    <DashboardLayout>
+      <div className="min-h-full">
+        <div className="mx-auto max-w-[1200px] px-8 pb-12 pt-2 text-[#2F2A24]">
+          <DashboardPageLoader scene="pantry" />
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+export default function PantryPage() {
+  return (
+    <Suspense fallback={<PantryPageFallback />}>
+      <PantryPageContent />
+    </Suspense>
   );
 }
 

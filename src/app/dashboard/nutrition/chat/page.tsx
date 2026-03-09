@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,7 @@ const WELCOME_MESSAGE = [
   "- Log 2 eggs for breakfast",
 ].join("\n");
 
-export default function NutritionChatPage() {
+function NutritionChatPageContent() {
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -247,5 +247,30 @@ export default function NutritionChatPage() {
         </Card>
       </div>
     </DashboardLayout>
+  );
+}
+
+function NutritionChatPageFallback() {
+  return (
+    <DashboardLayout>
+      <div className="h-[calc(100vh-10rem)]">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="border-b">
+            <CardTitle>AI Nutrition Assistant</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Loading chat...</p>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+export default function NutritionChatPage() {
+  return (
+    <Suspense fallback={<NutritionChatPageFallback />}>
+      <NutritionChatPageContent />
+    </Suspense>
   );
 }
