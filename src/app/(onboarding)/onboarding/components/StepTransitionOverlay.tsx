@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Check } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface StepTransitionOverlayProps {
   open: boolean;
@@ -15,7 +16,12 @@ interface StepTransitionOverlayProps {
   onComplete: () => void;
 }
 
-const CARD_EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
+const SPRING_EASE = [0.22, 1, 0.36, 1] as const;
+const REVEAL_START_DELAY_MS = 320;
+const REVEAL_STEP_DELAY_MS = 520;
+const COMPLETION_REVEAL_DELAY_MS = 180;
+const COMPLETE_ROUTE_DELAY_MS = 420;
+const MIN_TRANSITION_DURATION_MS = 2200;
 
 export default function StepTransitionOverlay({
   open,
@@ -30,10 +36,16 @@ export default function StepTransitionOverlay({
   const [visibleCount, setVisibleCount] = useState(0);
   const [progress, setProgress] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const doneTimeoutRef = useRef<number | null>(null);
   const revealTimeoutRef = useRef<number | null>(null);
   const hasCompletedRef = useRef(false);
+  const openedAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -50,27 +62,25 @@ export default function StepTransitionOverlay({
     setProgress(0);
     setShowCompletion(false);
     hasCompletedRef.current = false;
+    openedAtRef.current = performance.now();
 
     let revealTimeout: number | null = null;
     const revealNext = () => {
       setVisibleCount((prev) => {
-        if (prev >= checkpoints.length) {
-          return prev;
-        }
+        if (prev >= checkpoints.length) return prev;
         const nextCompleted = prev + 1;
         const clampedCompleted = Math.min(nextCompleted, checkpoints.length);
-        const syncedProgress = checkpoints.length > 0
-          ? (clampedCompleted / checkpoints.length) * 90
-          : 90;
+        const syncedProgress = checkpoints.length > 0 ? (clampedCompleted / checkpoints.length) * 90 : 90;
         setProgress(syncedProgress);
+
         if (nextCompleted < checkpoints.length) {
-          revealTimeout = window.setTimeout(revealNext, 600);
+          revealTimeout = window.setTimeout(revealNext, REVEAL_STEP_DELAY_MS);
         }
         return nextCompleted;
       });
     };
 
-    revealTimeout = window.setTimeout(revealNext, 220);
+    revealTimeout = window.setTimeout(revealNext, REVEAL_START_DELAY_MS);
 
     return () => {
       if (revealTimeout) window.clearTimeout(revealTimeout);
@@ -82,6 +92,7 @@ export default function StepTransitionOverlay({
   useEffect(() => {
     if (!open || !ready || hasCompletedRef.current) return;
     if (visibleCount < checkpoints.length) return;
+
     const runCompletion = () => {
       if (hasCompletedRef.current) return;
       hasCompletedRef.current = true;
@@ -89,105 +100,129 @@ export default function StepTransitionOverlay({
 
       revealTimeoutRef.current = window.setTimeout(() => {
         setShowCompletion(true);
-      }, 320);
+      }, COMPLETION_REVEAL_DELAY_MS);
 
       doneTimeoutRef.current = window.setTimeout(() => {
         onComplete();
-      }, 900);
+      }, COMPLETE_ROUTE_DELAY_MS);
     };
-    runCompletion();
+
+    const elapsed = performance.now() - openedAtRef.current;
+    const remainingMinDuration = Math.max(0, MIN_TRANSITION_DURATION_MS - elapsed);
+    doneTimeoutRef.current = window.setTimeout(runCompletion, remainingMinDuration);
   }, [checkpoints.length, onComplete, open, ready, visibleCount]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[75] bg-slate-950/26 backdrop-blur-md">
-      <div className="flex h-full w-full items-center justify-center px-6">
-        <div
-          className={cn(
-            "relative w-full max-w-xl overflow-hidden rounded-[18px] border border-white/70 bg-[linear-gradient(165deg,#ffffff_0%,#f6faf7_48%,#f8fcfb_100%)] p-7 shadow-[0_28px_72px_-42px_rgba(15,23,42,0.55)] transition-all duration-[400ms]",
-            showCompletion ? "scale-[1.02]" : "scale-100"
-          )}
-          style={{ transitionTimingFunction: CARD_EASE }}
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[9999] overflow-y-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22 }}
+          style={{
+            background: 'rgba(2, 6, 23, 0.26)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+          }}
         >
-          <div className="pointer-events-none absolute -left-16 top-0 h-40 w-40 rounded-full bg-emerald-300/25 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 top-8 h-40 w-40 rounded-full bg-teal-300/20 blur-3xl" />
+          <div className="flex min-h-full items-center justify-center px-6 py-8">
+            <motion.div
+              className="relative w-full max-w-xl overflow-hidden rounded-[24px] border border-white/75 bg-[linear-gradient(168deg,#ffffff_0%,#f4faf6_46%,#fff7ec_100%)] p-8 shadow-[0_36px_88px_-44px_rgba(15,23,42,0.65),0_0_0_1px_rgba(255,255,255,0.6)_inset]"
+              initial={{ scale: 0.92, opacity: 0, y: 24 }}
+              animate={{
+                scale: showCompletion ? 1.015 : 1,
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{ duration: 0.42, ease: SPRING_EASE }}
+            >
+              <div className="pointer-events-none absolute -left-20 -top-8 h-48 w-48 rounded-full bg-emerald-300/22 blur-3xl" />
+              <div className="pointer-events-none absolute -right-20 top-12 h-48 w-48 rounded-full bg-amber-300/18 blur-3xl" />
 
-          <div className="relative">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700/80">
-              Intelligent Personalization
-            </p>
-            <h3
-              className={cn(
-                "mt-2 text-2xl font-semibold tracking-[-0.01em] text-slate-900 transition-[opacity,transform] duration-300",
-                showCompletion ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
-              )}
-            >
-              {title}
-            </h3>
-            <p
-              className={cn(
-                "mt-2 text-sm leading-6 text-slate-600 transition-[opacity,transform] duration-300",
-                showCompletion ? "opacity-0 -translate-y-1" : "opacity-100 translate-y-0"
-              )}
-            >
-              {description}
-            </p>
+              <div className="relative">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-emerald-700/75">
+                  Precision Personalization
+                </p>
 
-            <h4
-              className={cn(
-                "absolute left-0 top-8 text-2xl font-semibold tracking-[-0.01em] text-slate-900 transition-[opacity,transform] duration-300",
-                showCompletion ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-1"
-              )}
-            >
-              {completionTitle}
-            </h4>
-            <p
-              className={cn(
-                "absolute left-0 top-20 text-sm text-slate-600 transition-[opacity,transform] duration-300",
-                showCompletion ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-1"
-              )}
-            >
-              {completionDescription}
-            </p>
-          </div>
-
-          <div className={cn("mt-5 space-y-2.5 transition-opacity duration-300", showCompletion ? "opacity-0" : "opacity-100")}>
-            {checkpoints.map((checkpoint, index) => {
-              const isVisible = index < visibleCount;
-              return (
-                <div
-                  key={checkpoint}
-                  className={cn(
-                    "flex transform-gpu items-center gap-3 rounded-[14px] border border-slate-200/85 bg-white/78 px-3 py-2.5 transition-[opacity,transform] duration-[400ms]",
-                    isVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-                  )}
-                  style={{ transitionTimingFunction: CARD_EASE }}
+                <motion.div
+                  animate={showCompletion ? { opacity: 0, y: -6 } : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.26 }}
                 >
-                  <div
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-300",
-                      isVisible
-                        ? "scale-100 border-emerald-300 bg-emerald-100 shadow-[0_0_0_6px_rgba(16,185,129,0.14)]"
-                        : "scale-75 border-slate-300 bg-white"
-                    )}
+                  <h3
+                    className="mt-2.5 text-[28px] font-medium leading-[1.08] tracking-[-0.02em] text-slate-900"
+                    style={{ fontFamily: "var(--font-onboarding-serif), Georgia, serif" }}
                   >
-                    <Check className={cn("h-3 w-3", isVisible ? "text-emerald-600" : "text-slate-400")} />
-                  </div>
-                  <p className="text-sm text-slate-700">{checkpoint}</p>
-                </div>
-              );
-            })}
-          </div>
+                    {title}
+                  </h3>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-slate-500">{description}</p>
+                </motion.div>
 
-          <div className={cn("mt-6 h-2 overflow-hidden rounded-full bg-slate-200/80", showCompletion ? "opacity-85" : "opacity-100")}>
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-[width] duration-300 ease-in-out"
-              style={{ width: `${Math.max(0, Math.min(100, progress)).toFixed(1)}%` }}
-            />
+                <motion.div
+                  className="absolute left-0 top-7 w-full"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={showCompletion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+                  transition={{ duration: 0.3, ease: SPRING_EASE }}
+                >
+                  <h3
+                    className="text-[28px] font-medium leading-[1.08] tracking-[-0.02em] text-slate-900"
+                    style={{ fontFamily: "var(--font-onboarding-serif), Georgia, serif" }}
+                  >
+                    {completionTitle}
+                  </h3>
+                  <p className="mt-1.5 text-[14px] text-slate-500">{completionDescription}</p>
+                </motion.div>
+              </div>
+
+              <motion.div
+                className="mt-6 space-y-2.5"
+                animate={{ opacity: showCompletion ? 0 : 1 }}
+                transition={{ duration: 0.22 }}
+              >
+                {checkpoints.slice(0, visibleCount).map((checkpoint, index) => {
+                  return (
+                    <motion.div
+                      key={checkpoint}
+                      className="flex items-center gap-3 rounded-[14px] border border-slate-200/80 bg-white/86 px-3.5 py-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.34, ease: SPRING_EASE, delay: index * 0.02 }}
+                    >
+                      <motion.div
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                        animate={{
+                          scale: 1,
+                          borderWidth: '1.5px',
+                          borderColor: 'rgb(110, 231, 183)',
+                          backgroundColor: 'rgb(209, 250, 229)',
+                          boxShadow: '0 0 0 5px rgba(16, 185, 129, 0.13)',
+                        }}
+                        transition={{ duration: 0.3, ease: SPRING_EASE }}
+                      >
+                        <Check className="h-2.5 w-2.5" style={{ color: 'rgb(5, 150, 105)' }} />
+                      </motion.div>
+                      <p className="text-sm text-slate-700">{checkpoint}</p>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+
+              <div className="mt-7 h-[6px] overflow-hidden rounded-full bg-slate-200/70">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-[#1B7D5A] via-[#22956B] to-[#E29D4A]"
+                  animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+                  transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                />
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }
+

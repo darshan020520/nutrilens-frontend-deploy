@@ -1,17 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useInView, useMotionValue, useSpring } from "framer-motion";
 import {
   Activity,
   ArrowRight,
+  Check,
   Clock3,
   HeartHandshake,
   Layers3,
@@ -23,514 +18,439 @@ import {
   WandSparkles,
 } from "lucide-react";
 
-const EASE = [0.2, 0, 0, 1] as const;
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN DIRECTION: Editorial Precision
+   
+   Warm serif headlines (Fraunces) + clean sans body (DM Sans).
+   Dark forest-green hero that feels premium, not SaaS-generic.
+   Generous whitespace. Strong typographic hierarchy.
+   Each section has its own visual identity.
+   The product preview should feel alive and real.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 const problemPoints = [
-  {
-    icon: Clock3,
-    title: "Too many decisions",
-    description: "Planning meals, tracking calories, and shopping all compete for your time.",
-  },
-  {
-    icon: Activity,
-    title: "Progress feels unclear",
-    description: "You put in effort, but daily feedback rarely shows what is actually improving.",
-  },
-  {
-    icon: ShoppingBasket,
-    title: "Food waste and rebuys",
-    description: "Pantry blind spots cause expiry losses, duplicate purchases, and rushed choices.",
-  },
-  {
-    icon: HeartHandshake,
-    title: "Hard to stay consistent",
-    description: "Busy days break momentum when systems are rigid or hard to use quickly.",
-  },
+  { icon: Clock3, title: "Too many decisions", desc: "Planning meals, tracking calories, and shopping all compete for your attention." },
+  { icon: Activity, title: "Progress feels unclear", desc: "You put in effort, but daily feedback rarely shows what's actually improving." },
+  { icon: ShoppingBasket, title: "Food waste and rebuys", desc: "Pantry blind spots cause expiry losses, duplicate purchases, and rushed choices." },
+  { icon: HeartHandshake, title: "Hard to stay consistent", desc: "Busy days break momentum when systems are rigid or hard to use quickly." },
 ];
 
-const howItWorks = [
-  {
-    id: 1,
-    icon: ScanSearch,
-    title: "Capture your real context",
-    description: "Your goals, dietary style, pantry state, and routine become one live profile.",
-  },
-  {
-    id: 2,
-    icon: WandSparkles,
-    title: "Generate an adaptive plan",
-    description: "NutriLens builds meal plans, alternatives, and shopping actions that fit your day.",
-  },
-  {
-    id: 3,
-    icon: ShieldCheck,
-    title: "Execute and auto-adjust",
-    description: "Log meals, swap fast, and use AI guidance to stay on track even when plans shift.",
-  },
+const steps = [
+  { id: 1, icon: ScanSearch, title: "Capture your real context", desc: "Your goals, dietary style, pantry state, and routine become one live profile." },
+  { id: 2, icon: WandSparkles, title: "Generate an adaptive plan", desc: "NutriLens builds meal plans, alternatives, and shopping actions that fit your day." },
+  { id: 3, icon: ShieldCheck, title: "Execute and auto-adjust", desc: "Log meals, swap fast, and use AI guidance to stay on track even when plans shift." },
 ];
 
-const featureCards = [
-  {
-    icon: Layers3,
-    title: "Unified command center",
-    description: "Meals, tracking, inventory, and nutrition insights in one focused workflow.",
-  },
-  {
-    icon: Sparkles,
-    title: "Intelligent meal flow",
-    description: "Generate, swap, skip, or log external meals with clear impact and recommendations.",
-  },
-  {
-    icon: Package,
-    title: "Inventory intelligence",
-    description: "Low stock, expiry risk, receipt scanning, fuzzy add-items, and restock automation.",
-  },
-  {
-    icon: Activity,
-    title: "Operational analytics",
-    description: "Daily adherence and macro trend visibility designed for quick decisions.",
-  },
-  {
-    icon: ShoppingBasket,
-    title: "Closed shopping loop",
-    description: "From plan to grocery list to inventory update, all connected without manual friction.",
-  },
-  {
-    icon: WandSparkles,
-    title: "AI recipe creativity",
-    description: "Generate recipes from available inventory in goal-aligned or guilt-free mode.",
-  },
+const features = [
+  { icon: Layers3, title: "Unified command center", desc: "Meals, tracking, inventory, and nutrition insights in one focused workflow." },
+  { icon: Sparkles, title: "Intelligent meal flow", desc: "Generate, swap, skip, or log external meals with clear impact and recommendations." },
+  { icon: Package, title: "Inventory intelligence", desc: "Low stock, expiry risk, receipt scanning, fuzzy add-items, and restock automation." },
+  { icon: Activity, title: "Operational analytics", desc: "Daily adherence and macro trend visibility designed for quick decisions." },
+  { icon: ShoppingBasket, title: "Closed shopping loop", desc: "From plan to grocery list to inventory update, all connected without manual friction." },
+  { icon: WandSparkles, title: "AI recipe creativity", desc: "Generate recipes from available inventory in goal-aligned or guilt-free mode." },
 ];
 
 const testimonials = [
-  {
-    name: "Aarav",
-    role: "Product manager, parent",
-    quote:
-      "I finally have one calm system that keeps food, goals, and shopping aligned during packed weeks.",
-  },
-  {
-    name: "Maya",
-    role: "Consultant, frequent traveler",
-    quote:
-      "Meal swaps and external logging made consistency realistic for my schedule, not theoretical.",
-  },
-  {
-    name: "Rohan",
-    role: "Strength training enthusiast",
-    quote:
-      "The inventory and meal planning loop removed guesswork and reduced wasted food almost immediately.",
-  },
+  { name: "Aarav", role: "Product manager, parent", quote: "I finally have one calm system that keeps food, goals, and shopping aligned during packed weeks." },
+  { name: "Maya", role: "Consultant, frequent traveler", quote: "Meal swaps and external logging made consistency realistic for my schedule, not theoretical." },
+  { name: "Rohan", role: "Strength training enthusiast", quote: "The inventory and meal planning loop removed guesswork and reduced wasted food almost immediately." },
 ];
 
-function useCountUp(target: number, durationMs = 1200): number {
-  const [value, setValue] = useState(0);
-
+function useCountUp(target: number, dur = 1200): number {
+  const [v, setV] = useState(0);
   useEffect(() => {
-    let rafId = 0;
-    const startTime = performance.now();
-
+    let raf = 0;
+    const start = performance.now();
     const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / durationMs, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
-      if (progress < 1) {
-        rafId = window.requestAnimationFrame(tick);
-      }
+      const p = Math.min((now - start) / dur, 1);
+      setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
     };
-
-    rafId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(rafId);
-  }, [target, durationMs]);
-
-  return value;
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, dur]);
+  return v;
 }
 
-function Reveal({
-  children,
-  className,
-  delay = 0,
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10% 0px -12% 0px" });
-
+function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-8% 0px -10% 0px" });
   return (
-    <motion.div
-      ref={ref}
-      className={className}
-      initial={{ opacity: 0, y: 20 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: 0.4, ease: EASE, delay }}
-    >
+    <motion.div ref={ref} className={className} initial={{ opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      transition={{ duration: 0.55, ease: EASE, delay }}>
       {children}
     </motion.div>
   );
 }
 
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#1B7D5A" }}>
+      <span className="inline-block h-[1.5px] w-5 rounded-full" style={{ background: "#1B7D5A" }} />
+      {children}
+    </p>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+
 export default function Home() {
-  const readiness = useCountUp(94, 1300);
-  const weeklyAdherence = useCountUp(87, 1500);
-  const caloriesLeft = useCountUp(460, 1200);
+  const readiness = useCountUp(94, 1400);
+  const adherence = useCountUp(87, 1600);
+  const calsLeft = useCountUp(460, 1300);
 
-  const parallaxX = useMotionValue(0);
-  const parallaxY = useMotionValue(0);
-  const parallaxXSpring = useSpring(parallaxX, { stiffness: 90, damping: 22, mass: 0.6 });
-  const parallaxYSpring = useSpring(parallaxY, { stiffness: 90, damping: 22, mass: 0.6 });
+  const px = useMotionValue(0);
+  const py = useMotionValue(0);
+  const pxs = useSpring(px, { stiffness: 80, damping: 24, mass: 0.5 });
+  const pys = useSpring(py, { stiffness: 80, damping: 24, mass: 0.5 });
 
-  const handleHeroMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const xPercent = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const yPercent = (event.clientY - bounds.top) / bounds.height - 0.5;
-
-    parallaxX.set(xPercent * 10);
-    parallaxY.set(yPercent * 10);
+  const heroMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const b = e.currentTarget.getBoundingClientRect();
+    px.set(((e.clientX - b.left) / b.width - 0.5) * 12);
+    py.set(((e.clientY - b.top) / b.height - 0.5) * 8);
   };
+  const heroLeave = () => { px.set(0); py.set(0); };
 
-  const resetHeroParallax = () => {
-    parallaxX.set(0);
-    parallaxY.set(0);
-  };
+  const bars = [0.48, 0.62, 0.58, 0.74, 0.68, 0.82, 0.87];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#f6f5ef] text-slate-900">
-      <motion.div
-        className="pointer-events-none absolute inset-0 opacity-80"
-        style={{
-          backgroundImage:
-            "radial-gradient(75% 90% at 10% 0%, rgba(16, 185, 129, 0.18) 0%, rgba(16,185,129,0) 56%), radial-gradient(65% 85% at 92% 8%, rgba(45, 212, 191, 0.14) 0%, rgba(45,212,191,0) 58%), linear-gradient(155deg, #f8f7f1 0%, #f3f4eb 48%, #f7f4ec 100%)",
-          backgroundSize: "180% 180%",
-        }}
-        animate={{ backgroundPosition: ["0% 35%", "100% 65%", "0% 35%"] }}
-        transition={{ duration: 42, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_45%_at_20%_0%,rgba(255,255,255,0.58)_0%,transparent_70%)]" />
-      <div className="pointer-events-none absolute -left-28 top-8 h-72 w-72 rounded-full bg-emerald-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute -right-28 top-20 h-72 w-72 rounded-full bg-teal-300/25 blur-3xl" />
+    <div className="relative min-h-screen overflow-x-hidden" style={{ background: "#FAFAF7", color: "#1a1a1a", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
 
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.35, ease: EASE }}
-        className="relative mx-auto flex w-full max-w-6xl flex-col px-6 pb-20 pt-12 md:px-8 md:pb-28 md:pt-16"
+      {/* ── Global Fonts ── */}
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&display=swap" />
+
+      {/* ══════════════════════════════════════════════════════════════
+         HERO — Dark forest green, editorial serif, product preview
+         ══════════════════════════════════════════════════════════════ */}
+      <section
+        className="relative overflow-hidden"
+        style={{ background: "linear-gradient(155deg, #0C3B2E 0%, #14533C 25%, #1B7D5A 55%, #1A6B4C 100%)" }}
+        onMouseMove={heroMove}
+        onMouseLeave={heroLeave}
       >
-        <section className="grid items-center gap-12 py-8 md:py-14 lg:grid-cols-[1fr_0.95fr]">
-          <div className="space-y-7">
-            <motion.div
-              className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/70 px-4 py-1.5 text-xs font-semibold tracking-[0.12em] text-slate-600 backdrop-blur-md"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.26, ease: EASE }}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-              NUTRILENS FOR BUSY ROUTINES
-            </motion.div>
+        {/* Texture */}
+        <div className="pointer-events-none absolute inset-0 opacity-100" style={{
+          backgroundImage: "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 1px, transparent 1px), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+        }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 70% at 0% 100%, rgba(34,149,107,0.2), transparent 55%)" }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 50% 60% at 100% 0%, rgba(255,255,255,0.03), transparent 45%)" }} />
 
-            <div className="relative">
-              <div className="pointer-events-none absolute -left-4 top-5 h-32 w-56 rounded-full bg-emerald-300/35 blur-3xl" />
-              <h1 className="max-w-2xl text-balance text-[2.35rem] font-semibold leading-[1.04] tracking-[-0.025em] text-slate-950 md:text-[3.65rem]">
-                <motion.span
-                  className="block"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, ease: EASE }}
-                >
-                  Stay on track with your eating,
-                </motion.span>
-                <motion.span
-                  className="mt-2 block"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, ease: EASE, delay: 0.12 }}
-                >
-                  even on your busiest days.
-                </motion.span>
-              </h1>
+        <div className="relative z-[1] mx-auto flex w-full max-w-[1140px] flex-col px-6 pb-16 pt-14 md:px-8 md:pb-24 md:pt-20">
+
+          {/* Nav hint */}
+          <motion.div className="mb-14 flex items-center justify-between"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "rgba(255,255,255,0.12)" }}>
+                <span className="text-[15px] font-bold text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>N</span>
+              </div>
+              <span className="text-[15px] font-semibold text-white/90">NutriLens</span>
             </div>
+            <div className="flex items-center gap-6">
+              <Link href="#how-it-works" className="hidden text-[13px] font-medium text-white/50 transition-colors hover:text-white/80 md:block">How it works</Link>
+              <Link href="#features" className="hidden text-[13px] font-medium text-white/50 transition-colors hover:text-white/80 md:block">Features</Link>
+              <Link href="/login" className="text-[13px] font-medium text-white/50 transition-colors hover:text-white/80">Log in</Link>
+              <Link href="/register" className="rounded-lg px-4 py-2 text-[13px] font-semibold text-white/90 transition-all" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                Start Free
+              </Link>
+            </div>
+          </motion.div>
 
-            <motion.p
-              className="max-w-xl text-pretty text-base leading-7 text-slate-600 md:text-lg"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.34, ease: EASE, delay: 0.18 }}
-            >
-              NutriLens turns meal planning, tracking, pantry management, and nutrition guidance into one calm,
-              modern flow so consistency feels easy, not stressful.
-            </motion.p>
+          {/* Hero grid */}
+          <div className="grid items-center gap-14 lg:grid-cols-[1fr_0.88fr]">
 
-            <motion.div
-              className="flex flex-wrap items-center gap-4"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.34, ease: EASE, delay: 0.24 }}
-            >
-              <motion.div whileHover={{ scale: 1.03 }} transition={{ duration: 0.2, ease: EASE }}>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center rounded-[16px] bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_-16px_rgba(5,150,105,0.65)] transition-all duration-200 ease-out hover:shadow-[0_18px_36px_-18px_rgba(5,150,105,0.78)]"
-                >
+            {/* Left — Copy */}
+            <div className="space-y-8">
+              <motion.div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE }}>
+                <Sparkles className="h-3 w-3" style={{ color: "#34D399" }} />
+                Built for busy routines
+              </motion.div>
+
+              <div>
+                <motion.h1
+                  className="max-w-[540px]"
+                  style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: "clamp(2.4rem, 5.2vw, 3.6rem)", fontWeight: 500, lineHeight: 1.06, letterSpacing: "-0.025em", color: "#fff" }}
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: EASE, delay: 0.05 }}>
+                  Stay on track with your eating, even on your busiest days.
+                </motion.h1>
+              </div>
+
+              <motion.p className="max-w-[460px] text-[15.5px] leading-[1.65]"
+                style={{ color: "rgba(255,255,255,0.5)" }}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE, delay: 0.15 }}>
+                NutriLens turns meal planning, tracking, pantry management, and nutrition guidance into one calm, modern flow.
+              </motion.p>
+
+              <motion.div className="flex flex-wrap items-center gap-4"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE, delay: 0.22 }}>
+                <Link href="/register" className="group inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-semibold transition-all duration-200"
+                  style={{ background: "#fff", color: "#14533C", boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
                   Start Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+                <Link href="#how-it-works" className="group inline-flex items-center gap-1 text-[14px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.45)" }}>
+                  <span className="border-b border-transparent transition-all group-hover:border-white/30 group-hover:text-white/70">See how it works</span>
                 </Link>
               </motion.div>
+            </div>
 
-              <Link
-                href="#how-it-works"
-                className="group relative inline-flex items-center rounded-[14px] px-2 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:text-slate-900"
-              >
-                See how it works
-                <span className="absolute bottom-1 left-2 h-[1.5px] w-0 bg-slate-700 transition-all duration-200 ease-out group-hover:w-[calc(100%-1rem)]" />
-              </Link>
-            </motion.div>
-          </div>
+            {/* Right — Product Preview */}
+            <motion.div className="relative" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: EASE, delay: 0.1 }}>
+              <motion.div style={{ x: pxs, y: pys }}
+                className="relative rounded-2xl p-5"
+                {...{ style: { x: pxs, y: pys, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, padding: 24 } } as any}>
 
-          <motion.div
-            className="relative"
-            onMouseMove={handleHeroMouseMove}
-            onMouseLeave={resetHeroParallax}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.42, ease: EASE, delay: 0.12 }}
-          >
-            <motion.div
-              style={{ x: parallaxXSpring, y: parallaxYSpring }}
-              className="relative rounded-[18px] border border-white/75 bg-white/78 p-5 shadow-[0_22px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl"
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Today snapshot</p>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                  On track
-                </span>
-              </div>
+                {/* Header */}
+                <div className="mb-5 flex items-center justify-between">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.35)" }}>Today Snapshot</p>
+                  <span className="rounded-lg px-2.5 py-1 text-[11px] font-semibold" style={{ background: "rgba(52,211,153,0.12)", color: "#34D399" }}>On track</span>
+                </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-[14px] border border-slate-200/90 bg-slate-50/70 p-3">
-                  <p className="text-[11px] text-slate-500">Readiness</p>
-                  <p className="text-2xl font-semibold text-slate-900">{readiness}%</p>
-                </div>
-                <div className="rounded-[14px] border border-slate-200/90 bg-slate-50/70 p-3">
-                  <p className="text-[11px] text-slate-500">This week</p>
-                  <p className="text-2xl font-semibold text-slate-900">{weeklyAdherence}%</p>
-                </div>
-                <div className="rounded-[14px] border border-slate-200/90 bg-slate-50/70 p-3">
-                  <p className="text-[11px] text-slate-500">Calories left</p>
-                  <p className="text-2xl font-semibold text-slate-900">{caloriesLeft}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-[14px] border border-slate-200/90 bg-white/80 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium text-slate-600">Adherence trend</p>
-                  <p className="text-xs text-slate-500">7 days</p>
-                </div>
-                <div className="flex h-20 items-end gap-1.5">
-                  {[0.52, 0.66, 0.62, 0.78, 0.72, 0.86, 0.83].map((scaleY, index) => (
-                    <motion.div
-                      key={`bar-${index}`}
-                      className="h-full w-full max-w-5 origin-bottom rounded-full bg-gradient-to-t from-teal-500 to-emerald-400/90"
-                      initial={{ scaleY: 0.25, opacity: 0.45 }}
-                      animate={{ scaleY, opacity: 1 }}
-                      transition={{ duration: 0.45, ease: EASE, delay: 0.12 + index * 0.05 }}
-                    />
+                {/* Stat cards */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  {[
+                    { label: "Readiness", value: `${readiness}%` },
+                    { label: "This week", value: `${adherence}%` },
+                    { label: "Cals left", value: `${calsLeft}` },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{s.label}</p>
+                      <p className="mt-1 text-[22px] font-semibold text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>{s.value}</p>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              <motion.div
-                whileHover={{ y: -3, scale: 1.01 }}
-                transition={{ duration: 0.22, ease: EASE }}
-                className="mt-4 rounded-[14px] border border-emerald-200/80 bg-emerald-50/70 p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-emerald-900">Lunch meal card</p>
-                  <span className="text-xs text-emerald-700">Ready to log</span>
+                {/* Chart */}
+                <div className="mt-4 rounded-xl p-3.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <p className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.4)" }}>Adherence trend</p>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.25)" }}>7 days</p>
+                  </div>
+                  <div className="flex h-16 items-end gap-1.5">
+                    {bars.map((s, i) => (
+                      <motion.div key={i} className="h-full w-full rounded-md"
+                        style={{ originY: 1, background: `linear-gradient(to top, rgba(27,125,90,0.9), rgba(34,211,153,0.6))` }}
+                        initial={{ scaleY: 0.15, opacity: 0.3 }} animate={{ scaleY: s, opacity: 1 }}
+                        transition={{ duration: 0.5, ease: EASE, delay: 0.2 + i * 0.05 }} />
+                    ))}
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-emerald-800/90">
-                  High-protein bowl, macro aligned, 12 min prep. One tap to log or swap.
-                </p>
+
+                {/* Meal card */}
+                <motion.div className="mt-3.5 rounded-xl p-3.5"
+                  style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.1)" }}
+                  whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.2, ease: EASE }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>Lunch — High-protein bowl</p>
+                    <span className="text-[11px] font-medium" style={{ color: "#34D399" }}>Ready</span>
+                  </div>
+                  <p className="mt-1 text-[12px]" style={{ color: "rgba(255,255,255,0.4)" }}>Macro aligned · 12 min prep · One tap to log</p>
+                </motion.div>
               </motion.div>
             </motion.div>
-          </motion.div>
-        </section>
+          </div>
+        </div>
 
-        <section id="problem" className="py-20 md:py-24">
-          <div className="mb-8 h-px w-full bg-gradient-to-r from-transparent via-emerald-300 to-transparent" />
-          <Reveal className="rounded-[18px] border border-white/75 bg-[linear-gradient(180deg,#f8f6ef_0%,#f2f4ea_100%)] px-6 py-8 shadow-[0_16px_36px_-26px_rgba(15,23,42,0.35)] md:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">The everyday problem</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-slate-900 md:text-4xl">
-              Healthy intent often fails because the system around it is fragmented.
-            </h2>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              NutriLens is built for regular people with real schedules. It reduces friction at each decision point so
-              consistency feels calm and practical.
-            </p>
+        {/* Hero bottom fade */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24" style={{ background: "linear-gradient(to top, #FAFAF7, transparent)" }} />
+      </section>
 
-            <ul className="mt-8 grid gap-4 md:grid-cols-2">
-              {problemPoints.map((point, index) => {
-                const Icon = point.icon;
-                return (
-                  <motion.li
-                    key={point.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-12% 0px -10% 0px" }}
-                    transition={{ duration: 0.4, ease: EASE, delay: index * 0.08 }}
-                    className="group rounded-[16px] border border-white/70 bg-white/70 p-4 transition-all duration-200 ease-out hover:border-emerald-200 hover:shadow-[0_12px_24px_-18px_rgba(16,185,129,0.55)]"
-                  >
-                    <div className="mb-2 inline-flex rounded-[12px] border border-slate-200/90 bg-slate-50 p-2 text-slate-600 transition-colors duration-200 group-hover:border-emerald-200 group-hover:text-emerald-700">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <p className="text-sm font-semibold text-slate-900">{point.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{point.description}</p>
-                  </motion.li>
-                );
-              })}
-            </ul>
-          </Reveal>
-        </section>
+      {/* ══════════════════════════════════════════════════════════════
+         PROBLEM — Why this exists
+         ══════════════════════════════════════════════════════════════ */}
+      <section className="relative mx-auto max-w-[1140px] px-6 py-24 md:px-8 md:py-32">
+        <Reveal>
+          <SectionLabel>The everyday problem</SectionLabel>
+          <h2 className="mt-4 max-w-[680px] text-[28px] font-medium leading-[1.15] tracking-[-0.02em] md:text-[36px]"
+            style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+            Healthy intent often fails because the system around it is fragmented.
+          </h2>
+          <p className="mt-4 max-w-[520px] text-[15px] leading-[1.7] text-slate-500">
+            NutriLens is built for regular people with real schedules. It reduces friction at each decision point so consistency feels calm and practical.
+          </p>
+        </Reveal>
 
-        <section id="how-it-works" className="py-20 md:py-24">
-          <Reveal className="mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">How it works</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-slate-900 md:text-4xl">
-              Three focused steps, designed for speed and consistency.
-            </h2>
-          </Reveal>
+        <div className="mt-14 grid gap-3 md:grid-cols-2">
+          {problemPoints.map((p, i) => {
+            const Icon = p.icon;
+            return (
+              <Reveal key={p.title} delay={i * 0.06}>
+                <div className="group rounded-2xl border border-slate-200/70 bg-white p-5 transition-all duration-250 hover:-translate-y-0.5 hover:border-emerald-200/60 hover:shadow-[0_12px_36px_rgba(0,0,0,0.05)]">
+                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
+                    <Icon className="h-[17px] w-[17px]" />
+                  </div>
+                  <p className="text-[14.5px] font-semibold text-slate-900">{p.title}</p>
+                  <p className="mt-1.5 text-[13.5px] leading-[1.6] text-slate-500">{p.desc}</p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </section>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {howItWorks.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <Reveal key={step.id} delay={index * 0.08}>
-                  <article className="group relative h-full rounded-[16px] border border-white/80 bg-white/72 p-5 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_20px_38px_-24px_rgba(15,23,42,0.45)]">
-                    <div className="absolute inset-0 rounded-[16px] border border-transparent transition-colors duration-200 group-hover:border-emerald-300/45" />
-                    <div className="mb-3 inline-flex rounded-[12px] border border-slate-200/80 bg-slate-50 p-2.5 text-slate-700 transition-all duration-200 group-hover:rotate-[5deg] group-hover:text-emerald-700">
+      {/* ══════════════════════════════════════════════════════════════
+         HOW IT WORKS — Numbered steps with visual distinction
+         ══════════════════════════════════════════════════════════════ */}
+      <section id="how-it-works" className="relative mx-auto max-w-[1140px] px-6 py-20 md:px-8 md:py-28">
+        {/* Subtle divider */}
+        <div className="absolute left-6 right-6 top-0 h-px md:left-8 md:right-8" style={{ background: "linear-gradient(90deg, transparent, #d4d4d0, transparent)" }} />
+
+        <Reveal>
+          <SectionLabel>How it works</SectionLabel>
+          <h2 className="mt-4 max-w-[600px] text-[28px] font-medium leading-[1.15] tracking-[-0.02em] md:text-[36px]"
+            style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+            Three focused steps, designed for speed and consistency.
+          </h2>
+        </Reveal>
+
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {steps.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <Reveal key={step.id} delay={i * 0.08}>
+                <div className="group relative h-full overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-6 transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]">
+                  {/* Step number — large, faded */}
+                  <span className="pointer-events-none absolute -right-2 -top-3 text-[72px] font-bold leading-none"
+                    style={{ fontFamily: "'Fraunces', Georgia, serif", color: "rgba(27,125,90,0.05)" }}>
+                    {step.id}
+                  </span>
+                  <div className="relative">
+                    <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-600 transition-all duration-200 group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:rotate-[4deg]">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <p className="text-xs font-semibold tracking-[0.11em] text-slate-500">STEP {step.id}</p>
-                    <h3 className="mt-1 text-lg font-semibold text-slate-900">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
+                    <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400">Step {step.id}</p>
+                    <h3 className="mt-1 text-[17px] font-semibold text-slate-900">{step.title}</h3>
+                    <p className="mt-2 text-[13.5px] leading-[1.6] text-slate-500">{step.desc}</p>
+                  </div>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </section>
 
-                    {step.id === 2 && (
-                      <div className="pointer-events-none absolute -right-3 top-6 hidden w-48 rounded-[14px] border border-emerald-200/80 bg-white/92 p-3 opacity-0 shadow-[0_16px_34px_-24px_rgba(16,185,129,0.58)] transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 xl:block">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-700">
-                          Grocery preview
-                        </p>
-                        <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                          <li>Chicken breast x 2</li>
-                          <li>Spinach x 1</li>
-                          <li>Greek yogurt x 1</li>
-                        </ul>
-                      </div>
-                    )}
-                  </article>
-                </Reveal>
-              );
-            })}
-          </div>
-        </section>
-
-        <section id="features" className="py-20 md:py-24">
-          <Reveal className="mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Capabilities</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-slate-900 md:text-4xl">
+      {/* ══════════════════════════════════════════════════════════════
+         FEATURES — 2-column grid, distinctive
+         ══════════════════════════════════════════════════════════════ */}
+      <section id="features" className="relative" style={{ background: "#F3F3EE" }}>
+        <div className="mx-auto max-w-[1140px] px-6 py-24 md:px-8 md:py-32">
+          <Reveal>
+            <SectionLabel>Capabilities</SectionLabel>
+            <h2 className="mt-4 max-w-[640px] text-[28px] font-medium leading-[1.15] tracking-[-0.02em] md:text-[36px]"
+              style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
               Premium execution surfaces for every nutrition workflow.
             </h2>
           </Reveal>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {featureCards.map((feature, index) => {
-              const Icon = feature.icon;
+          <div className="mt-14 grid gap-3 md:grid-cols-2">
+            {features.map((f, i) => {
+              const Icon = f.icon;
               return (
-                <Reveal key={feature.title} delay={(index % 2) * 0.08}>
-                  <article className="group relative overflow-hidden rounded-[16px] border border-white/80 bg-white/55 p-5 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.34)] backdrop-blur-md transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(15,23,42,0.42)]">
-                    <div className="pointer-events-none absolute inset-0 rounded-[16px] border border-transparent bg-[linear-gradient(130deg,rgba(16,185,129,0.16),rgba(45,212,191,0.04),rgba(16,185,129,0.0))] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                <Reveal key={f.title} delay={(i % 2) * 0.06}>
+                  <div className="group relative h-full overflow-hidden rounded-2xl border border-white/80 bg-white/70 p-5 backdrop-blur-sm transition-all duration-250 hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(0,0,0,0.05)]">
+                    {/* Hover gradient */}
+                    <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-250 group-hover:opacity-100"
+                      style={{ background: "linear-gradient(135deg, rgba(27,125,90,0.04), transparent 60%)" }} />
                     <div className="relative">
-                      <div className="mb-3 inline-flex rounded-[12px] border border-slate-200/80 bg-white/75 p-2.5 text-slate-700 transition-colors duration-200 group-hover:text-emerald-700">
-                        <Icon className="h-5 w-5" />
+                      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/60 bg-white text-slate-600 transition-colors duration-200 group-hover:text-emerald-600">
+                        <Icon className="h-[17px] w-[17px]" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900">{feature.title}</h3>
-                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{feature.description}</p>
+                      <h3 className="text-[15.5px] font-semibold text-slate-900">{f.title}</h3>
+                      <p className="mt-1.5 max-w-[420px] text-[13.5px] leading-[1.6] text-slate-500">{f.desc}</p>
                     </div>
-                  </article>
+                  </div>
                 </Reveal>
               );
             })}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section id="social-proof" className="py-20 md:py-24">
-          <Reveal className="relative overflow-hidden rounded-[18px] border border-white/75 bg-[linear-gradient(145deg,#f3f6ef_0%,#eef5f2_46%,#f4f4ec_100%)] px-6 py-8 shadow-[0_14px_32px_-22px_rgba(15,23,42,0.35)] md:px-8">
-            <div className="pointer-events-none absolute -left-10 top-0 h-52 w-52 rounded-full bg-emerald-300/20 blur-3xl" />
-            <div className="pointer-events-none absolute -right-10 bottom-0 h-52 w-52 rounded-full bg-teal-300/20 blur-3xl" />
+      {/* ══════════════════════════════════════════════════════════════
+         SOCIAL PROOF — Clean testimonials
+         ══════════════════════════════════════════════════════════════ */}
+      <section className="mx-auto max-w-[1140px] px-6 py-24 md:px-8 md:py-32">
+        <Reveal>
+          <SectionLabel>People using NutriLens</SectionLabel>
+          <h2 className="mt-4 max-w-[600px] text-[28px] font-medium leading-[1.15] tracking-[-0.02em] md:text-[36px]"
+            style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+            Trusted by people who need clarity in real life, not perfect conditions.
+          </h2>
+        </Reveal>
 
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Social proof</p>
-            <h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-slate-900 md:text-4xl">
-              Trusted by people who need clarity in real life, not perfect conditions.
-            </h2>
-
-            <div className="mt-7 grid gap-4 md:grid-cols-3">
-              {testimonials.map((item, index) => (
-                <motion.article
-                  key={item.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-12% 0px -10% 0px" }}
-                  transition={{ duration: 0.4, ease: EASE, delay: index * 0.08 }}
-                  className="rounded-[16px] border border-white/75 bg-white/72 p-4 backdrop-blur-sm"
-                >
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-200 to-teal-200" />
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-xs text-slate-500">{item.role}</p>
-                    </div>
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {testimonials.map((t, i) => (
+            <Reveal key={t.name} delay={i * 0.08}>
+              <div className="h-full rounded-2xl border border-slate-200/70 bg-white p-5 transition-all duration-250 hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(0,0,0,0.05)]">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+                    {t.name[0]}
                   </div>
-                  <p className="text-sm leading-6 text-slate-600">{item.quote}</p>
-                </motion.article>
-              ))}
-            </div>
-          </Reveal>
-        </section>
+                  <div>
+                    <p className="text-[14px] font-semibold text-slate-900">{t.name}</p>
+                    <p className="text-[12px] text-slate-400">{t.role}</p>
+                  </div>
+                </div>
+                <p className="text-[14px] leading-[1.65] text-slate-600">&ldquo;{t.quote}&rdquo;</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
 
-        <section className="py-20 md:py-24">
-          <Reveal className="relative overflow-hidden rounded-[18px] border border-[#1e2f2c]/20 bg-[#123833] px-6 py-12 text-center text-white shadow-[0_22px_48px_-26px_rgba(18,56,51,0.75)] md:px-8 md:py-14">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(50%_50%_at_50%_0%,rgba(52,211,153,0.35)_0%,transparent_80%)]" />
-            <h2 className="mx-auto max-w-3xl text-3xl font-semibold tracking-[-0.02em] md:text-4xl">
+      {/* ══════════════════════════════════════════════════════════════
+         FINAL CTA — Dark band, confident, magnetic
+         ══════════════════════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden" style={{ background: "linear-gradient(155deg, #0C3B2E 0%, #14533C 40%, #1B7D5A 100%)" }}>
+        {/* Texture */}
+        <div className="pointer-events-none absolute inset-0" style={{
+          backgroundImage: "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.03) 1px, transparent 1px), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.03) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }} />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse 50% 80% at 50% 0%, rgba(52,211,153,0.15), transparent 60%)" }} />
+
+        <div className="relative z-[1] mx-auto max-w-[720px] px-6 py-20 text-center md:px-8 md:py-28">
+          <Reveal>
+            <h2 className="text-[28px] font-medium leading-[1.12] tracking-[-0.02em] text-white md:text-[40px]"
+              style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
               A modern nutrition system that feels calm, fast, and reliable from day one.
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-emerald-50/85">
-              Start free, set your profile, and let NutriLens handle the operational complexity while you focus on
-              results.
+            <p className="mx-auto mt-4 max-w-[480px] text-[15px] leading-[1.65]" style={{ color: "rgba(255,255,255,0.5)" }}>
+              Start free, set your profile, and let NutriLens handle the operational complexity while you focus on results.
             </p>
 
-            <motion.div
-              className="mt-8 inline-block"
-              animate={{
-                boxShadow: [
-                  "0 0 0 0 rgba(45,212,191,0.18)",
-                  "0 0 0 12px rgba(45,212,191,0.03)",
-                  "0 0 0 0 rgba(45,212,191,0.18)",
-                ],
-              }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <motion.div whileHover={{ scale: 1.03 }} transition={{ duration: 0.2, ease: EASE }}>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center rounded-[16px] bg-gradient-to-r from-emerald-400 to-teal-400 px-7 py-3.5 text-sm font-semibold text-slate-950 transition-all duration-200 ease-out hover:shadow-[0_16px_34px_-18px_rgba(16,185,129,0.65)]"
-                >
-                  Start Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </motion.div>
+            <motion.div className="mt-10 inline-block"
+              animate={{ boxShadow: ["0 0 0 0 rgba(52,211,153,0.15)", "0 0 0 16px rgba(52,211,153,0)", "0 0 0 0 rgba(52,211,153,0.15)"] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
+              <Link href="/register" className="group inline-flex items-center gap-2 rounded-xl px-8 py-4 text-[15px] font-semibold transition-all duration-200"
+                style={{ background: "#fff", color: "#14533C", boxShadow: "0 4px 24px rgba(0,0,0,0.15)" }}>
+                Start Free
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
             </motion.div>
           </Reveal>
-        </section>
-      </motion.main>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="mx-auto max-w-[1140px] px-6 py-10 md:px-8">
+        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+              <span className="text-[11px] font-bold text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>N</span>
+            </div>
+            <span className="text-[13px] font-semibold text-slate-700">NutriLens</span>
+          </div>
+          <p className="text-[12px] text-slate-400">Built for real routines, not perfect conditions.</p>
+        </div>
+      </footer>
     </div>
   );
 }

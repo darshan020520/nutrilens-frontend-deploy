@@ -2,6 +2,10 @@ import type { TrackingEvent } from "@/core/api/types";
 
 type TrackingHandler = (event: TrackingEvent) => void;
 
+function isLocalHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
 function resolveTrackingSocketUrl(token: string): string {
   const envBase = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (envBase) {
@@ -15,7 +19,12 @@ function resolveTrackingSocketUrl(token: string): string {
   }
 
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://localhost:8000/ws/tracking?token=${token}`;
+  if (isLocalHostname(window.location.hostname)) {
+    return `${protocol}://localhost:8000/ws/tracking?token=${token}`;
+  }
+
+  console.warn("NEXT_PUBLIC_API_URL is not set. Falling back to same-origin /ws.");
+  return `${protocol}://${window.location.host}/ws/tracking?token=${token}`;
 }
 
 export class TrackingSocketClient {

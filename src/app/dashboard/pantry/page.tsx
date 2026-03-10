@@ -24,14 +24,9 @@ type MakeableResponse = {
 };
 
 const AI_SHOWN_SESSION_KEY = "pantry_ai_shown";
-const HERO_SHADOW = "shadow-[0_6px_20px_rgba(0,0,0,0.05),0_30px_60px_rgba(0,0,0,0.06)]";
-const METRICS_SHADOW = "shadow-[0_6px_18px_rgba(0,0,0,0.04),0_20px_40px_rgba(0,0,0,0.05)]";
-const SIGNAL_SHADOW = "shadow-[0_6px_18px_rgba(0,0,0,0.04)]";
-const ITEM_SHADOW = "shadow-[0_8px_24px_rgba(0,0,0,0.06)]";
-const ITEM_HOVER_SHADOW = "hover:shadow-[0_14px_30px_rgba(0,0,0,0.08)]";
 const RING_RADIUS = 18;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-const CATEGORY_CHIP = "rounded-full bg-[#E7EFEA] px-2.5 py-1 text-[12px] font-medium text-[#2F6F5E]";
+const CATEGORY_CHIP = "rounded-lg bg-emerald-50 px-2.5 py-1 text-[12px] font-medium text-emerald-700";
 
 function formatWeight(grams: number): string {
   if (grams >= 1000) return `${(grams / 1000).toFixed(1)} kg`;
@@ -62,12 +57,12 @@ function getFreshnessText(daysUntilExpiry: number | null): string {
 }
 
 function getFreshnessMeta(daysUntilExpiry: number | null): { fillClass: string; width: number } {
-  if (daysUntilExpiry === null) return { fillClass: "bg-gradient-to-r from-[#2F6F5E] to-[#5A9A7E]", width: 32 };
+  if (daysUntilExpiry === null) return { fillClass: "bg-gradient-to-r from-[#1B7D5A] to-[#22956B]", width: 32 };
   if (daysUntilExpiry < 0) return { fillClass: "bg-gradient-to-r from-[#DC2626] to-[#F97316]", width: 12 };
   if (daysUntilExpiry === 0) return { fillClass: "bg-gradient-to-r from-[#E6A23C] to-[#F59E0B]", width: 20 };
-  if (daysUntilExpiry < 3) return { fillClass: "bg-gradient-to-r from-[#2F6F5E] to-[#5A9A7E]", width: Math.max(18, Math.min(36, daysUntilExpiry * 10 + 10)) };
-  if (daysUntilExpiry <= 7) return { fillClass: "bg-gradient-to-r from-[#2F6F5E] to-[#5A9A7E]", width: Math.max(42, Math.min(76, (daysUntilExpiry / 7) * 76)) };
-  return { fillClass: "bg-gradient-to-r from-[#2F6F5E] to-[#5A9A7E]", width: Math.max(78, Math.min(100, (daysUntilExpiry / 14) * 100)) };
+  if (daysUntilExpiry < 3) return { fillClass: "bg-gradient-to-r from-[#1B7D5A] to-[#22956B]", width: Math.max(18, Math.min(36, daysUntilExpiry * 10 + 10)) };
+  if (daysUntilExpiry <= 7) return { fillClass: "bg-gradient-to-r from-[#1B7D5A] to-[#22956B]", width: Math.max(42, Math.min(76, (daysUntilExpiry / 7) * 76)) };
+  return { fillClass: "bg-gradient-to-r from-[#1B7D5A] to-[#22956B]", width: Math.max(78, Math.min(100, (daysUntilExpiry / 14) * 100)) };
 }
 
 function getHealthMessage(score: number): string {
@@ -431,18 +426,26 @@ function PantryPageContent() {
             id="hero"
             className={`hero-wrapper relative h-[360px] overflow-hidden rounded-[24px] px-10 py-12 ${isInstantClosingAI ? "transition-none" : "transition-[background,box-shadow] duration-[260ms] ease-out"} ${
               isAIActive
-                ? "ai-active bg-[linear-gradient(120deg,#F8F4ED_0%,#EFE7DD_100%)] bg-[length:200%_200%] [animation:pantry-hero-drift_10s_ease_infinite_alternate] shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
-                : `bg-gradient-to-br from-[#F8F5F0] to-[#EFE8DE] ${HERO_SHADOW}`
+                ? "ai-active bg-[linear-gradient(120deg,#0F4C35_0%,#1A6B4C_100%)] bg-[length:200%_200%] [animation:pantry-hero-drift_10s_ease_infinite_alternate] shadow-[0_12px_32px_rgba(0,0,0,0.08)]"
+                : "bg-[linear-gradient(155deg,#14533C_0%,#1B7D5A_55%,#22956B_100%)] shadow-[0_6px_20px_rgba(0,0,0,0.05),0_30px_60px_rgba(0,0,0,0.06)]"
             } flex flex-col items-stretch justify-between gap-10 lg:flex-row`}
           >
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 1px, transparent 1px), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 1px, transparent 1px)",
+                backgroundSize: "56px 56px",
+              }}
+            />
             <button
               type="button"
               onClick={() => (isAIActive ? deactivateAI() : activateAI({ auto: false }))}
-              className={`ai-tab absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-[12px] border border-[#D9D2C8] bg-[#F6F2EC] px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#455448] transition-all duration-[260ms] [writing-mode:vertical-rl] ${
+              className={`ai-tab absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-[12px] border border-white/12 bg-white/8 px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50 transition-all duration-[260ms] [writing-mode:vertical-rl] ${
                 isAIActive
-                  ? "active border-[#2F6F5E] bg-[#EFE9E1] text-[#2F6F5E] shadow-[0_0_0_4px_rgba(47,111,94,0.12)]"
+                  ? "active border-[#34D399]/40 bg-white/15 text-[#34D399]"
                   : isAITabInvite
-                    ? "invite border-[#2F6F5E] bg-[#F3EFE9] text-[#2F6F5E]"
+                    ? "invite border-[#34D399]/40 bg-white/12 text-[#34D399]"
                     : ""
               }`}
               aria-pressed={isAIActive}
@@ -455,21 +458,26 @@ function PantryPageContent() {
                 isInstantClosingAI ? "transition-none" : "transition-[opacity,transform] duration-[260ms] ease-out"
               } ${isAIActive ? "pointer-events-none -translate-y-[10px] opacity-0" : "opacity-100"}`}
             >
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#7A7267]">Your Pantry</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">Your Pantry</p>
               <div className="flex items-start gap-4">
-                <span aria-hidden className="mt-1 block h-[56px] w-[6px] rounded-[6px] bg-[#2F6F5E]" />
+                <span aria-hidden className="mt-1 block h-[56px] w-[6px] rounded-[6px] bg-white/25" />
                 <div className="space-y-2">
-                  <h1 className="text-[42px] font-bold leading-[1.1] tracking-[-0.02em] text-[#2A2A2A]">{heroHeadline}</h1>
-                  <p className="text-[16px] text-[#4B5563]/75">Track freshness, reduce waste, and power smarter meals.</p>
-                  <p className="text-[15px] text-[#5F5A51]">You can cook {readyRecipeCount} meals with what you have.</p>
+                  <h1
+                    className="text-[36px] font-bold leading-[1.1] tracking-[-0.02em] text-white"
+                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                  >
+                    {heroHeadline}
+                  </h1>
+                  <p className="text-[16px] text-white/50">Track freshness, reduce waste, and power smarter meals.</p>
+                  <p className="text-[15px] text-white/45">You can cook {readyRecipeCount} meals with what you have.</p>
                 </div>
               </div>
               <div className="flex gap-3 pl-6 pt-1">
-                <Button className="h-10 rounded-[12px] bg-[#2F6F5E] px-[18px] py-[10px] font-medium text-white hover:bg-[#2A6254]" onClick={() => setAddItemsOpen(true)}>
+                <Button className="h-10 rounded-[12px] bg-white px-[18px] py-[10px] font-semibold text-[#14533C] shadow-[0_2px_10px_rgba(0,0,0,0.1)] hover:bg-white/90" onClick={() => setAddItemsOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Items
                 </Button>
-                <Button variant="outline" className="h-10 rounded-[12px] border border-[#E5E0DA] bg-white px-[18px] py-[10px] font-medium text-[#5F574D] hover:bg-[#FCFBF9]" onClick={() => setReceiptUploadOpen(true)}>
+                <Button variant="outline" className="h-10 rounded-[12px] border border-white/12 bg-white/10 px-[18px] py-[10px] font-medium text-white/80 hover:bg-white/15" onClick={() => setReceiptUploadOpen(true)}>
                   <Camera className="mr-2 h-4 w-4" />
                   Scan Receipt
                 </Button>
@@ -477,40 +485,40 @@ function PantryPageContent() {
             </div>
 
             <div
-              className={`metrics-card z-[1] h-full rounded-[20px] border border-[#ECE5DD] bg-[#FBF8F4] p-6 ${
+              className={`metrics-card z-[1] h-full rounded-[20px] border border-white/10 bg-white/8 p-6 backdrop-blur-[16px] ${
                 isInstantClosingAI ? "transition-none" : "transition-[opacity,transform,filter] duration-[260ms] ease-out"
-              } ${METRICS_SHADOW} ${isAIActive ? "scale-[0.96] opacity-[0.14] filter saturate-[.85]" : "opacity-100"} lg:w-[38%]`}
+              } shadow-[0_6px_18px_rgba(0,0,0,0.04),0_20px_40px_rgba(0,0,0,0.05)] ${isAIActive ? "scale-[0.96] opacity-[0.14] filter saturate-[.85]" : "opacity-100"} lg:w-[38%]`}
             >
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div className="space-y-1">
-                  <p className="text-[12px] text-[#7B7367]">Items</p>
-                  <p className="text-[22px] font-bold text-[#312C27]">{totalItems}</p>
+                  <p className="text-[12px] text-white/40">Items</p>
+                  <p className="text-[22px] font-semibold text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{totalItems}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[12px] text-[#7B7367]">Expiring</p>
-                  <p className="text-[22px] font-bold text-[#312C27]">{expiringSoonCount}</p>
+                  <p className="text-[12px] text-white/40">Expiring</p>
+                  <p className="text-[22px] font-semibold text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{expiringSoonCount}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[12px] text-[#7B7367]">Weight</p>
-                  <p className="text-[22px] font-bold text-[#312C27]">{formatWeight(totalWeight)}</p>
+                  <p className="text-[12px] text-white/40">Weight</p>
+                  <p className="text-[22px] font-semibold text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{formatWeight(totalWeight)}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[12px] text-[#7B7367]">Low</p>
-                  <p className="text-[22px] font-bold text-[#312C27]">{runningLowCount}</p>
+                  <p className="text-[12px] text-white/40">Low</p>
+                  <p className="text-[22px] font-semibold text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{runningLowCount}</p>
                 </div>
               </div>
 
-              <div className="my-4 h-px bg-[#E5E7EB]" />
+              <div className="my-4 h-px bg-white/10" />
 
               <div className="mt-3 flex items-center gap-3">
                 <div className="h-9 w-9 shrink-0">
                   <svg viewBox="0 0 44 44" className="h-9 w-9 -rotate-90">
-                    <circle cx="22" cy="22" r={RING_RADIUS} stroke="rgba(125,118,106,0.22)" strokeWidth="5" fill="none" />
+                    <circle cx="22" cy="22" r={RING_RADIUS} stroke="rgba(255,255,255,0.12)" strokeWidth="5" fill="none" />
                     <circle
                       cx="22"
                       cy="22"
                       r={RING_RADIUS}
-                      stroke="#5E7C65"
+                      stroke="#34D399"
                       strokeWidth="7"
                       fill="none"
                       strokeLinecap="round"
@@ -520,8 +528,8 @@ function PantryPageContent() {
                     />
                   </svg>
                 </div>
-                <p className="text-[13px] text-[#6F685E]">
-                  <span className="font-medium text-[#514A41]">Pantry Health:</span> {getHealthMessage(pantryHealthScore)}
+                <p className="text-[13px] text-white/45">
+                  <span className="font-medium text-white/70">Pantry Health:</span> {getHealthMessage(pantryHealthScore)}
                 </p>
               </div>
             </div>
@@ -535,11 +543,11 @@ function PantryPageContent() {
             >
               <div className="ai-content relative w-full max-w-[820px]">
                 <div className="ai-header mb-[6px] flex items-center justify-between">
-                  <span className="ai-label text-[12px] font-semibold tracking-[1px] text-[#2F6F5E]">PANTRY INSIGHT</span>
+                  <span className="ai-label text-[12px] font-semibold tracking-[1px] text-[#34D399]">PANTRY INSIGHT</span>
                   <button
                     type="button"
                     onClick={deactivateAI}
-                    className="ai-close absolute right-10 top-8 border-b border-[rgba(47,111,94,0.2)] bg-transparent pb-0.5 text-[13px] font-medium text-[#4A4A4A]/60 transition-opacity hover:text-[#4A4A4A]"
+                    className="ai-close absolute right-10 top-8 border-b border-white/20 bg-transparent pb-0.5 text-[13px] font-medium text-white/40 transition-opacity hover:text-white/70"
                   >
                     Close
                   </button>
@@ -547,16 +555,16 @@ function PantryPageContent() {
 
                 <div className="ai-main flex min-h-[220px] max-w-[820px] items-stretch">
                   <div
-                    className={`ai-accent mr-5 w-1 rounded-[2px] bg-gradient-to-b from-[#2F6F5E] to-[#4B8F7B] shadow-[0_0_14px_rgba(47,111,94,0.28)] ${
+                    className={`ai-accent mr-5 w-1 rounded-[2px] bg-gradient-to-b from-[#34D399] to-[#22956B] shadow-[0_0_14px_rgba(47,111,94,0.28)] ${
                       isInstantClosingAI ? "transition-none" : "transition-[height] duration-[400ms] ease-out"
                     } ${
                       isAIActive ? "h-full" : "h-0"
                     }`}
                   />
                   <div className="ai-text">
-                    <h2 className="ai-title mb-[18px] text-[34px] font-[650] tracking-[-0.2px] text-[#2A2A2A]">Here&apos;s what your pantry is telling you.</h2>
-                    <div className="ai-divider mb-[22px] h-px w-20 bg-[rgba(47,111,94,0.2)]" />
-                    <div id="ai-stream-container" className="ai-body max-w-[580px] whitespace-pre-line text-[16px] leading-[1.3] text-[#374151]">
+                    <h2 className="ai-title mb-[18px] text-[34px] font-[650] tracking-[-0.2px] text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>Here&apos;s what your pantry is telling you.</h2>
+                    <div className="ai-divider mb-[22px] h-px w-20 bg-white/20" />
+                    <div id="ai-stream-container" className="ai-body max-w-[580px] whitespace-pre-line text-[16px] leading-[1.3] text-white/65">
                       {aiStreamText}
                     </div>
                   </div>
@@ -566,14 +574,17 @@ function PantryPageContent() {
           </section>
 
           <section className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className={`rounded-[18px] bg-[#F1ECE5] px-6 py-[26px] ${SIGNAL_SHADOW}`}>
+            <div className="rounded-2xl border border-slate-200/70 bg-white px-6 py-[26px]">
               <div className="mb-0.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h2 className="signal-title relative pb-[10px] text-[18px] font-semibold tracking-[-0.01em] text-[#302B25] after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-8 after:rounded-[2px] after:bg-[rgba(47,111,94,0.35)] after:content-['']">
+                  <h2
+                    className="signal-title relative pb-[10px] text-[18px] font-semibold tracking-[-0.01em] text-slate-900 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-8 after:rounded-[2px] after:bg-emerald-500/30 after:content-['']"
+                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                  >
                     Use Soon
                   </h2>
                   <Select value={String(expiringDays)} onValueChange={(value) => setExpiringDays(Number(value))}>
-                    <SelectTrigger className="h-8 w-[96px] rounded-[8px] border-[#DDD4C8] bg-white text-[13px]">
+                    <SelectTrigger className="h-8 w-[96px] rounded-[8px] border-slate-200 bg-white text-[13px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -584,7 +595,7 @@ function PantryPageContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Link href="/dashboard/kitchen" className="text-[13px] text-[#9A9287]">
+                <Link href="/dashboard/kitchen" className="text-[13px] font-semibold text-emerald-600 hover:text-emerald-700">
                   View all
                 </Link>
               </div>
@@ -594,15 +605,15 @@ function PantryPageContent() {
                   <Skeleton className="h-6 w-full rounded-[10px]" />
                 </div>
               ) : expiringError ? (
-                <p className="text-[13px] text-[#7C7468]">Could not load expiring insights.</p>
+                <p className="text-[13px] text-slate-400">Could not load expiring insights.</p>
               ) : expiringPreview.length === 0 ? (
                 <div className="signal-empty flex items-center gap-[14px] px-1 py-3">
                   <span className="empty-ring relative h-[18px] w-[18px] shrink-0 rounded-full border-2 border-[#5A9A7E]">
                     <span className="absolute inset-1 rounded-full bg-[#5A9A7E]" />
                   </span>
                   <span className="empty-text min-w-0">
-                    <span className="empty-title text-[14px] font-medium text-[#2F6F5E]">All good for now</span>
-                    <span className="empty-subtext block text-[14px] text-[#6B7280]">
+                    <span className="empty-title text-[14px] font-medium text-emerald-700">All good for now</span>
+                    <span className="empty-subtext block text-[14px] text-slate-400">
                       Nothing expiring in the next {expiringDays} day{expiringDays > 1 ? "s" : ""}.
                     </span>
                   </span>
@@ -617,17 +628,17 @@ function PantryPageContent() {
                         href={`/dashboard/kitchen?ingredient=${encodeURIComponent(item.item_name)}`}
                         className="block"
                       >
-                        <div className="signal-item flex items-center justify-between rounded-[14px] px-[14px] py-[10px] transition-[background,transform] duration-150 ease-out hover:translate-x-[2px] hover:bg-black/3">
+                        <div className="signal-item flex items-center justify-between rounded-[14px] px-[14px] py-[10px] transition-[background,transform] duration-150 ease-out hover:translate-x-[2px] hover:bg-slate-50">
                           <div className="signal-left flex min-w-0 items-center">
-                            <span className="signal-ring relative mr-3 h-4 w-4 shrink-0 -translate-y-px rounded-full bg-[#E5E0DA]">
+                            <span className="signal-ring relative mr-3 h-4 w-4 shrink-0 -translate-y-px rounded-full bg-slate-100">
                               <span className={`absolute inset-0 rounded-full ${getSignalRingClass(ringVariant)}`} />
-                              <span className="absolute inset-[3px] rounded-full bg-[#F1ECE5]" />
+                              <span className="absolute inset-[3px] rounded-full bg-white" />
                             </span>
-                            <span className="signal-item-name overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium tracking-[0.2px] text-[#2A2A2A]">
+                            <span className="signal-item-name overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium tracking-[0.2px] text-slate-800">
                               {item.item_name}
                             </span>
                           </div>
-                          <span className="signal-meta text-[13px] text-[#6B7280]">{item.days_remaining <= 0 ? "Today" : `${item.days_remaining} days`}</span>
+                          <span className="signal-meta text-[13px] text-slate-400">{item.days_remaining <= 0 ? "Today" : `${item.days_remaining} days`}</span>
                         </div>
                       </Link>
                     );
@@ -636,12 +647,15 @@ function PantryPageContent() {
               )}
             </div>
 
-            <div className={`running-low-card rounded-[18px] bg-[#F3ECE6] px-6 py-[26px] ${SIGNAL_SHADOW}`}>
+            <div className="running-low-card rounded-2xl border border-slate-200/70 bg-white px-6 py-[26px]">
               <div className="mb-0.5 flex items-center justify-between">
-                <h2 className="signal-title relative pb-[10px] text-[18px] font-semibold tracking-[-0.01em] text-[#302B25] after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-8 after:rounded-[2px] after:bg-[rgba(47,111,94,0.35)] after:content-['']">
+                <h2
+                  className="signal-title relative pb-[10px] text-[18px] font-semibold tracking-[-0.01em] text-slate-900 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-8 after:rounded-[2px] after:bg-emerald-500/30 after:content-['']"
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                >
                   Running Low
                 </h2>
-                <Link href="/dashboard/restock" className="text-[13px] text-[#9A9287]">
+                <Link href="/dashboard/restock" className="text-[13px] font-semibold text-emerald-600 hover:text-emerald-700">
                   View all
                 </Link>
               </div>
@@ -651,9 +665,9 @@ function PantryPageContent() {
                   <Skeleton className="h-6 w-full rounded-[10px]" />
                 </div>
               ) : restockError ? (
-                <p className="text-[13px] text-[#7C7468]">Could not load stock insights.</p>
+                <p className="text-[13px] text-slate-400">Could not load stock insights.</p>
               ) : runningLowPreview.length === 0 ? (
-                <p className="text-[13px] text-[#7C7468]">You&apos;re stocked up.</p>
+                <p className="text-[13px] text-slate-400">You&apos;re stocked up.</p>
               ) : (
                 <div className="space-y-3">
                   {runningLowPreview.map((item) => (
@@ -662,17 +676,17 @@ function PantryPageContent() {
                       href="/dashboard/restock"
                       className="block"
                     >
-                      <div className="signal-item flex items-center justify-between rounded-[14px] px-[14px] py-[10px] transition-[background,transform] duration-150 ease-out hover:translate-x-[2px] hover:bg-black/3">
+                      <div className="signal-item flex items-center justify-between rounded-[14px] px-[14px] py-[10px] transition-[background,transform] duration-150 ease-out hover:translate-x-[2px] hover:bg-slate-50">
                         <div className="signal-left flex min-w-0 items-center">
-                          <span className="signal-ring relative mr-3 h-4 w-4 shrink-0 -translate-y-px rounded-full bg-[#E5E0DA]">
+                          <span className="signal-ring relative mr-3 h-4 w-4 shrink-0 -translate-y-px rounded-full bg-slate-100">
                             <span className={`absolute inset-0 rounded-full ${getSignalRingClass("low")}`} />
-                            <span className="absolute inset-[3px] rounded-full bg-[#F3ECE6]" />
+                            <span className="absolute inset-[3px] rounded-full bg-white" />
                           </span>
-                          <span className="signal-item-name overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium tracking-[0.2px] text-[#2A2A2A]">
+                          <span className="signal-item-name overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium tracking-[0.2px] text-slate-800">
                             {item.item_name}
                           </span>
                         </div>
-                        <span className="status-low rounded-full border border-[#F9D4D4] bg-[#FDECEC] px-[10px] py-1 text-[12px] font-medium text-[#B42318] opacity-90">
+                        <span className="status-low rounded-lg border border-red-200 bg-red-50 px-[10px] py-1 text-[12px] font-medium text-red-600">
                           Low
                         </span>
                       </div>
@@ -683,24 +697,24 @@ function PantryPageContent() {
             </div>
           </section>
 
-          <section id="all-items" className="mt-14 rounded-[28px] bg-[#F7F3EE] p-8">
+          <section id="all-items" className="mt-14 rounded-2xl border border-slate-200/70 bg-white p-8">
             <div className="space-y-1.5">
-              <h2 className="text-[19px] font-semibold text-[#2F2A24]">All Ingredients</h2>
-              <p className="text-[14px] text-[#6F685E]">Everything currently in your kitchen.</p>
+              <h2 className="text-[19px] font-semibold text-slate-900" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>All Ingredients</h2>
+              <p className="text-[14px] text-slate-400">Everything currently in your kitchen.</p>
             </div>
 
             <div className="mt-4 flex flex-col gap-2.5 md:flex-row md:items-center">
               <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8378]" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search pantry items..."
-                  className="h-10 rounded-[8px] border-[#DDD4C8] bg-white pl-9 text-[#3E372F] placeholder:text-[#8C8479]"
+                  className="h-10 rounded-xl border-slate-200 bg-white pl-9 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
                 />
               </div>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-10 w-full rounded-[8px] border-[#DDD4C8] bg-white md:w-44">
+                <SelectTrigger className="h-10 w-full rounded-xl border-slate-200 bg-white md:w-44">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -714,7 +728,7 @@ function PantryPageContent() {
               </Select>
               <Button
                 variant={showExpiringOnly ? "default" : "outline"}
-                className={`h-10 rounded-[12px] ${showExpiringOnly ? "bg-[#2F6F5E] text-white hover:bg-[#2A6254]" : "border-[#DDD4C8] bg-white text-[#5E574D]"}`}
+                className={`h-10 rounded-xl ${showExpiringOnly ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}
                 onClick={onToggleExpiringFilter}
               >
                 Expiring
@@ -776,7 +790,7 @@ function PantryPageContent() {
                   <AlertDescription>Failed to load pantry items.</AlertDescription>
                 </Alert>
               ) : filteredItems.length === 0 ? (
-                <div className="rounded-[18px] bg-white px-6 py-10 text-center text-[13px] text-[#6F685E]">No pantry items match these filters.</div>
+                <div className="rounded-[18px] bg-white px-6 py-10 text-center text-[13px] text-slate-500">No pantry items match these filters.</div>
               ) : (
                 <div className="grid gap-6 lg:grid-cols-2">
                   {filteredItems.map((item) => {
@@ -784,39 +798,39 @@ function PantryPageContent() {
                     return (
                       <Card
                         key={item.id}
-                        className={`group rounded-[18px] border border-[#ECE5DD] bg-white ${ITEM_SHADOW} ${ITEM_HOVER_SHADOW} transition-all duration-150 hover:-translate-y-1`}
+                        className="group rounded-2xl border border-slate-200/80 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
                       >
                         <CardContent className="p-5">
                           <div className="mb-5 flex items-start gap-3">
-                            <h3 className="min-w-0 flex-1 break-words text-[16px] font-semibold text-[#1F2937] [overflow-wrap:anywhere]">
+                            <h3 className="min-w-0 flex-1 break-words text-[16px] font-semibold text-slate-900 [overflow-wrap:anywhere]">
                               {item.item_name}
                             </h3>
                             <div className="flex items-center gap-2">
                               <Badge className={`${CATEGORY_CHIP} max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap`}>
                                 {formatCategoryLabel(item.category)}
                               </Badge>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-[8px] text-[#6F685E]" onClick={() => onDeleteItem(item)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-[8px] text-slate-400 hover:text-red-500" onClick={() => onDeleteItem(item)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
 
                           <div className="mb-5 flex items-center justify-between gap-2">
-                            <p className="inline-flex items-center gap-1 text-[14px] font-medium text-[#6C655A]">
+                            <p className="inline-flex items-center gap-1 text-[14px] font-medium text-slate-500">
                               <Weight className="h-3.5 w-3.5" />
                               {item.is_depleted ? "Out of stock" : formatWeight(item.quantity_grams)}
                             </p>
                           </div>
 
                           <div>
-                            <p className="mb-1 text-[12px] text-[#1F2937]/75">Freshness</p>
-                            <div className="h-[8px] overflow-hidden rounded-[6px] bg-[#E6E1DA]">
+                            <p className="mb-1 text-[12px] text-slate-500">Freshness</p>
+                            <div className="h-[5px] overflow-hidden rounded-full bg-slate-100">
                               <div
-                                className={`h-[8px] rounded-[6px] ${freshness.fillClass}`}
+                                className={`h-[5px] rounded-full ${freshness.fillClass}`}
                                 style={{ width: `${freshness.width}%`, transition: "width 400ms ease-out" }}
                               />
                             </div>
-                            <p className={`mt-1.5 text-[13px] ${item.days_until_expiry !== null && item.days_until_expiry < 0 ? "text-[#B42318]" : "text-[#6F685E]"}`}>
+                            <p className={`mt-1.5 text-[13px] ${item.days_until_expiry !== null && item.days_until_expiry < 0 ? "text-[#B42318]" : "text-slate-500"}`}>
                               {getFreshnessText(item.days_until_expiry)}
                             </p>
                           </div>

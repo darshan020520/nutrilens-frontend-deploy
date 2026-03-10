@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Dialog,
   DialogClose,
@@ -66,6 +66,10 @@ const GENERATION_STEPS = [
 ];
 const FIRST_PLAN_TOOLTIP_KEY = "nutrilens:meals:first-plan-tooltip-seen";
 const TOTAL_GENERATION_STEPS = GENERATION_STEPS.length;
+const GENERATION_FIRST_STEP_DELAY_MS = 320;
+const GENERATION_STEP_INTERVAL_MS = 520;
+const GENERATION_FINALIZE_DELAY_MS = 700;
+const OVERLAY_ENTRY_EASE = [0.22, 1, 0.36, 1] as const;
 
 // ── Helpers (unchanged) ────────────────────────────────────────────────────
 
@@ -229,8 +233,11 @@ export function WeekView() {
 
   useEffect(() => {
     if (!isRegenerating || generationStepCount >= TOTAL_GENERATION_STEPS) return;
-    const delay = generationReady ? 220 : 500;
-    const t = window.setTimeout(() => setGenerationStepCount((p) => Math.min(p + 1, TOTAL_GENERATION_STEPS)), delay);
+    const delay = generationStepCount === 0 ? GENERATION_FIRST_STEP_DELAY_MS : GENERATION_STEP_INTERVAL_MS;
+    const t = window.setTimeout(
+      () => setGenerationStepCount((p) => Math.min(p + 1, TOTAL_GENERATION_STEPS)),
+      delay
+    );
     timersRef.current.push(t); return () => window.clearTimeout(t);
   }, [generationReady, generationStepCount, isRegenerating]);
 
@@ -245,8 +252,8 @@ export function WeekView() {
     finalizeStartedRef.current = true; setGenerationFinalizing(true); setGenerationProgress(100);
     const t = window.setTimeout(() => {
       finalizeStartedRef.current = false; setIsRegenerating(false); setGenerationFinalizing(false);
-      triggerPlanReveal(true); toast.success("Your weekly plan is ready.");
-    }, 700);
+      triggerPlanReveal(true);
+    }, GENERATION_FINALIZE_DELAY_MS);
     timersRef.current.push(t); return () => window.clearTimeout(t);
   }, [generationReady, generationStepCount, isRegenerating, triggerPlanReveal]);
 
@@ -693,72 +700,92 @@ export function WeekView() {
 function MealGenerationOverlay({ progress, completedSteps, waitingForBackend, finalizing }: {
   progress: number; completedSteps: number; waitingForBackend: boolean; finalizing: boolean;
 }) {
-  const [entered, setEntered] = useState(false);
-  useEffect(() => { const id = window.requestAnimationFrame(() => setEntered(true)); return () => window.cancelAnimationFrame(id); }, []);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
-  return (
-    <div className={cn("fixed inset-0 z-50 bg-slate-950/20 backdrop-blur-[3px] transition-opacity duration-400", entered ? "opacity-100" : "opacity-0")}>
-      <div className="flex h-full items-center justify-center px-5">
-        <div className={cn(
-          "w-full max-w-xl rounded-2xl border border-white/80 bg-white/98 p-7 text-slate-900 shadow-[0_30px_70px_-45px_rgba(15,23,42,0.45)] transition-[opacity,transform] duration-400",
-          entered ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
-        )}>
-          <div className="mb-4 flex justify-center">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
-              <Soup className="h-6 w-6" />
-              <svg className="pointer-events-none absolute -top-6 h-8 w-10" viewBox="0 0 40 26" fill="none" aria-hidden>
-                <path d="M8 22 C6 16, 10 12, 8 6" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out infinite" }} />
-                <path d="M20 22 C18 15, 22 11, 20 4" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out 0.4s infinite" }} />
-                <path d="M32 22 C30 16, 34 12, 32 6" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out 0.8s infinite" }} />
-              </svg>
-            </div>
-          </div>
+  if (!mounted) return null;
 
-          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600/70">Meal Planning Engine</p>
-          <h3
-            className="mt-2 text-center text-[20px] font-medium tracking-[-0.01em] text-slate-900"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+  return createPortal(
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[9999] overflow-y-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22 }}
+        style={{
+          background: "rgba(2, 6, 23, 0.26)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+        }}
+      >
+        <div className="flex min-h-full items-center justify-center px-5 py-8">
+          <motion.div
+            className="relative w-full max-w-xl overflow-hidden rounded-[24px] border border-white/75 bg-[linear-gradient(168deg,#ffffff_0%,#f4faf6_46%,#fff7ec_100%)] p-8 text-slate-900 shadow-[0_36px_88px_-44px_rgba(15,23,42,0.65),0_0_0_1px_rgba(255,255,255,0.6)_inset]"
+            initial={{ scale: 0.92, opacity: 0, y: 24 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.98, opacity: 0, y: 8 }}
+            transition={{ duration: 0.42, ease: OVERLAY_ENTRY_EASE }}
           >
-            Designing your weekly meal plan...
-          </h3>
-          <p className="mt-1 text-center text-[13px] text-slate-500">Crafting meals that fit your goals, taste, and time.</p>
+            <div className="pointer-events-none absolute -left-20 -top-8 h-48 w-48 rounded-full bg-emerald-300/22 blur-3xl" />
+            <div className="pointer-events-none absolute -right-20 top-12 h-48 w-48 rounded-full bg-amber-300/18 blur-3xl" />
 
-          <div className="mt-5 space-y-2.5">
-            {GENERATION_STEPS.map((step, index) => {
-              const isDone = index < completedSteps;
-              return (
-                <div key={step} className={cn(
-                  "flex items-center gap-2.5 rounded-xl border border-slate-100 bg-white px-3.5 py-2.5 transition-all duration-300",
-                  isDone ? "translate-y-0 opacity-100" : "translate-y-1 opacity-40"
-                )}>
-                  <div className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full transition-all duration-300",
-                    isDone ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
-                  )}>
+            <div className="mb-4 flex justify-center">
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                <Soup className="h-6 w-6" />
+                <svg className="pointer-events-none absolute -top-6 h-8 w-10" viewBox="0 0 40 26" fill="none" aria-hidden>
+                  <path d="M8 22 C6 16, 10 12, 8 6" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out infinite" }} />
+                  <path d="M20 22 C18 15, 22 11, 20 4" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out 0.4s infinite" }} />
+                  <path d="M32 22 C30 16, 34 12, 32 6" className="stroke-emerald-500/70" strokeWidth="1.6" strokeLinecap="round" style={{ animation: "steam-rise 3s ease-in-out 0.8s infinite" }} />
+                </svg>
+              </div>
+            </div>
+
+            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600/70">Meal Planning Engine</p>
+            <h3
+              className="mt-2 text-center text-[20px] font-medium tracking-[-0.01em] text-slate-900"
+              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+            >
+              Designing your weekly meal plan...
+            </h3>
+            <p className="mt-1 text-center text-[13px] text-slate-500">Crafting meals that fit your goals, taste, and time.</p>
+
+            <div className="mt-5 min-h-[248px] space-y-2.5">
+              {GENERATION_STEPS.slice(0, completedSteps).map((step, index) => (
+                <motion.div
+                  key={step}
+                  className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white/86 px-3.5 py-2.5"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.34, ease: OVERLAY_ENTRY_EASE, delay: index * 0.02 }}
+                >
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-[0_0_0_5px_rgba(16,185,129,0.13)]">
                     <CheckCircle2 className="h-3 w-3" />
                   </div>
-                  <p className="text-[13px] text-slate-600">{step}</p>
-                </div>
-              );
-            })}
-          </div>
+                  <p className="text-[13px] text-slate-700">{step}</p>
+                </motion.div>
+              ))}
+            </div>
 
-          <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-[width] duration-300 ease-in-out"
-              style={{ width: `${Math.max(0, Math.min(100, progress)).toFixed(1)}%` }}
-            />
-            {waitingForBackend && (
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent" style={{ animation: "progress-shimmer 1.2s ease-in-out infinite" }} />
-              </div>
-            )}
-          </div>
-          <p className="mt-2 text-center text-[11px] text-slate-400">
-            {finalizing ? "Finalizing your week..." : waitingForBackend ? "Applying final recipe scoring..." : "Curating meals for consistency and variety."}
-          </p>
+            <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                animate={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+                transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+              />
+              {waitingForBackend && (
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                  <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent" style={{ animation: "progress-shimmer 1.2s ease-in-out infinite" }} />
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-center text-[11px] text-slate-400">
+              {finalizing ? "Finalizing your week..." : waitingForBackend ? "Applying final recipe scoring..." : "Curating meals for consistency and variety."}
+            </p>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </AnimatePresence>,
+    document.body
   );
 }

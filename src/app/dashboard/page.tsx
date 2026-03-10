@@ -12,11 +12,13 @@ import { QuickActions } from "./components/QuickActions";
 import { RecentActivity } from "./components/RecentActivity";
 import { useDashboard } from "./hooks/useDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardPageLoader, useInitialPageLoader } from "@/shared/components/states/DashboardPageLoader";
+import { motion } from "framer-motion";
 
 const DASHBOARD_WELCOME_KEY = "nutrilens:onboarding:dashboard-welcome";
+const DASHBOARD_LOGIN_WELCOME_KEY = "nutrilens:dashboard:login-welcome";
 const ONBOARDING_FIRST_NAME_KEY = "nutrilens:onboarding:first-name";
 const FIRST_MEAL_PULSE_KEY = "nutrilens:dashboard:first-meal-cta-pulse";
 
@@ -40,6 +42,7 @@ export default function DashboardPage() {
   const [welcomeName, setWelcomeName] = useState("");
   const [welcomeCalories, setWelcomeCalories] = useState<number | null>(null);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [welcomeBannerType, setWelcomeBannerType] = useState<"onboarding" | "login" | null>(null);
   const [showBridgeOverlay, setShowBridgeOverlay] = useState(false);
   const [bridgeFadeOut, setBridgeFadeOut] = useState(false);
   const [displayedRemainingCalories, setDisplayedRemainingCalories] = useState(0);
@@ -54,6 +57,18 @@ export default function DashboardPage() {
     () => (welcomeName ? `Welcome, ${welcomeName}.` : "Welcome."),
     [welcomeName]
   );
+  const welcomeBannerTitle = useMemo(() => {
+    if (welcomeBannerType === "login") {
+      return welcomeName ? `Welcome back, ${welcomeName}.` : "Welcome back.";
+    }
+    return welcomeTitle;
+  }, [welcomeBannerType, welcomeName, welcomeTitle]);
+  const welcomeBannerDescription = useMemo(() => {
+    if (welcomeBannerType === "login") {
+      return "You're signed in and your dashboard is ready.";
+    }
+    return "Your targets are locked and ready.";
+  }, [welcomeBannerType]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -61,6 +76,7 @@ export default function DashboardPage() {
     let parsedName = "";
     let parsedCalories: number | null = null;
     let fromOnboarding = false;
+    const showLoginBanner = !!window.sessionStorage.getItem(DASHBOARD_LOGIN_WELCOME_KEY);
 
     const raw = window.sessionStorage.getItem(DASHBOARD_WELCOME_KEY);
     if (raw) {
@@ -85,9 +101,13 @@ export default function DashboardPage() {
     setWelcomeCalories(parsedCalories);
 
     if (fromOnboarding) {
+      setWelcomeBannerType("onboarding");
       setShowBridgeOverlay(true);
       setBridgeFadeOut(false);
       setIsDashboardVisible(false);
+      if (showLoginBanner) {
+        window.sessionStorage.removeItem(DASHBOARD_LOGIN_WELCOME_KEY);
+      }
 
       const startFadeTimer = window.setTimeout(() => {
         setBridgeFadeOut(true);
@@ -105,10 +125,15 @@ export default function DashboardPage() {
     } else {
       setShowBridgeOverlay(false);
       setBridgeFadeOut(false);
+      setWelcomeBannerType(showLoginBanner ? "login" : null);
       const rafId = window.requestAnimationFrame(() => {
         setIsDashboardVisible(true);
+        setShowWelcomeBanner(showLoginBanner);
       });
       timersRef.current.push(rafId);
+      if (showLoginBanner) {
+        window.sessionStorage.removeItem(DASHBOARD_LOGIN_WELCOME_KEY);
+      }
     }
 
     return () => {
@@ -201,34 +226,6 @@ export default function DashboardPage() {
     };
   }, [summary]);
 
-  if (showInitialLoader) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-8">
-          <DashboardPageLoader scene="home" isExiting={isLoaderExiting} />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <Alert variant="destructive" className="max-w-md">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between gap-4">
-              <span>Failed to load dashboard data</span>
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
-                Try Again
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       {/* ── Custom animations & overrides ── */}
@@ -295,24 +292,58 @@ export default function DashboardPage() {
         }
       `}</style>
 
+      {/* ── Page loader (shown while data fetches, bridge overlay renders above it) ── */}
+      {showInitialLoader && (
+        <div className="space-y-8">
+          <DashboardPageLoader scene="home" isExiting={isLoaderExiting} />
+        </div>
+      )}
+
+      {/* ── Error state ── */}
+      {!showInitialLoader && error && (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <span>Failed to load dashboard data</span>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                Try Again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* ── Main dashboard content ── */}
+      {!showInitialLoader && !error && (
       <div
         className={cn(
           "space-y-5 transition-[opacity,transform] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
           isDashboardVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
         )}
       >
-        {/* ── Welcome banner (onboarding transition) ── */}
+        {/* ── Welcome banner (onboarding transition) — always in DOM, CSS-driven show/hide ── */}
         <section
           className={cn(
-            "overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-r from-emerald-50/90 to-teal-50/80 transition-[max-height,opacity,transform,padding] duration-350 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "overflow-hidden rounded-[18px] border border-emerald-200/70 bg-[linear-gradient(120deg,rgba(236,253,245,0.96)_0%,rgba(240,253,250,0.94)_55%,rgba(255,247,237,0.9)_100%)] transition-[max-height,opacity,padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
             showWelcomeBanner
-              ? "max-h-32 translate-y-0 px-5 py-4 opacity-100"
-              : "max-h-0 -translate-y-2 px-5 py-0 opacity-0"
+              ? "max-h-36 px-5 py-4 opacity-100"
+              : "max-h-0 px-5 py-0 opacity-0"
           )}
           aria-hidden={!showWelcomeBanner}
         >
-          <p className="text-base font-semibold tracking-[-0.01em] text-slate-900">{welcomeTitle}</p>
-          <p className="mt-1 text-sm text-slate-600">Your targets are locked and ready.</p>
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-[0_4px_16px_-10px_rgba(16,185,129,0.4)]">
+              <BadgeCheck className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold tracking-[-0.015em] text-slate-900">{welcomeBannerTitle}</p>
+              <p className="mt-0.5 text-[13px] text-slate-600">{welcomeBannerDescription}</p>
+            </div>
+            <span className="rounded-full border border-emerald-200/90 bg-white/90 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+              {welcomeBannerType === "login" ? "Signed in" : "Onboarding complete"}
+            </span>
+          </div>
         </section>
 
         {/* ── Hero Banner ── */}
@@ -414,35 +445,72 @@ export default function DashboardPage() {
           <RecentActivity data={activity} isLoading={isLoading} />
         </div>
       </div>
+      )}
 
-      {/* ── Bridge Overlay (onboarding → dashboard transition) ── */}
+      {/* ── Bridge Overlay (onboarding → dashboard transition) — always in DOM ── */}
+      {/* Always rendered so CSS opacity transition works reliably without a useEffect tick delay. */}
       <div
-        className={cn(
-          "fixed inset-0 z-40 flex items-center justify-center px-6 transition-opacity duration-500",
-          showBridgeOverlay
-            ? bridgeFadeOut
-              ? "pointer-events-none opacity-0"
-              : "opacity-100"
-            : "pointer-events-none opacity-0"
-        )}
+        className="fixed inset-0 z-40 flex items-center justify-center px-6"
         style={{
-          background: "radial-gradient(80% 120% at 50% 0%, rgba(16,185,129,0.15) 0%, rgba(255,255,255,0.97) 50%, rgba(240,248,244,0.98) 100%)",
+          opacity: showBridgeOverlay ? (bridgeFadeOut ? 0 : 1) : 0,
+          pointerEvents: showBridgeOverlay && !bridgeFadeOut ? "auto" : "none",
+          transition: bridgeFadeOut ? "opacity 550ms ease-in-out" : "none",
+          background: "linear-gradient(160deg, #edfdf4 0%, #f8fffe 40%, #f0faf5 100%)",
         }}
       >
-        <div className="text-center">
-          <h2
-            className="text-3xl font-medium tracking-[-0.02em] text-slate-900 md:text-4xl"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            {welcomeName ? `Welcome, ${welcomeName}.` : "Welcome."}
-          </h2>
-          <p className="mt-2.5 text-base text-slate-600">
-            {welcomeCalories !== null
-              ? `Your daily target is set to ${welcomeCalories.toLocaleString()} kcal.`
-              : "Your daily target is set and ready."}
-          </p>
-          <p className="mt-1 text-sm text-slate-400">Let&apos;s start strong.</p>
-        </div>
+        {/* Only render animated content while the overlay is active — resets animations on each open */}
+        {showBridgeOverlay && (
+          <>
+            <div
+              className="pointer-events-none absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full blur-3xl"
+              style={{ background: "rgba(16,185,129,0.22)" }}
+            />
+            <div
+              className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full blur-3xl"
+              style={{ background: "rgba(20,184,166,0.14)" }}
+            />
+
+            <div className="relative text-center">
+              <motion.h2
+                className="text-3xl font-medium tracking-[-0.025em] text-slate-900 md:text-[42px]"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+              >
+                {welcomeName ? `Welcome, ${welcomeName}.` : "Welcome."}
+              </motion.h2>
+
+              <motion.p
+                className="mt-3 text-[15px] text-slate-600"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1], delay: 0.26 }}
+              >
+                {welcomeCalories !== null
+                  ? `Your daily target is set to ${welcomeCalories.toLocaleString()} kcal.`
+                  : "Your daily target is set and ready."}
+              </motion.p>
+
+              <motion.p
+                className="mt-1.5 text-sm text-slate-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.44 }}
+              >
+                Let&apos;s start strong.
+              </motion.p>
+
+              <motion.div
+                className="mx-auto mt-6 h-px rounded-full"
+                style={{ background: "linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent)" }}
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 120, opacity: 1 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

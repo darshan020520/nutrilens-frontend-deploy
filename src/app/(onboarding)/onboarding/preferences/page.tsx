@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Beef, Check, Fish, Leaf, Loader2, Salad } from 'lucide-react';
 import { toast } from 'sonner';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -103,7 +104,7 @@ function useAnimatedValue(target: number, triggerKey: number, delayMs: number): 
     let frameId: number | null = null;
     let delayTimer: number | null = null;
     const startValue = 0;
-    const duration = 800;
+    const duration = 900;
 
     delayTimer = window.setTimeout(() => {
       const startTime = performance.now();
@@ -128,6 +129,8 @@ function useAnimatedValue(target: number, triggerKey: number, delayMs: number): 
   return value;
 }
 
+const SPRING_EASE = [0.22, 1, 0.36, 1] as const;
+
 const cuisineOptions = [
   { value: 'indian', label: 'Indian' },
   { value: 'continental', label: 'Continental' },
@@ -146,6 +149,36 @@ const allergyOptions = [
   { value: 'shellfish', label: 'Shellfish' },
 ];
 
+const macroCards = [
+  { key: 'goal_calories' as const, label: 'Calories', unit: '', accent: 'emerald', big: true },
+  { key: 'protein_g' as const, label: 'Protein', unit: 'g', accent: 'blue', big: false },
+  { key: 'carbs_g' as const, label: 'Carbs', unit: 'g', accent: 'amber', big: false },
+  { key: 'fat_g' as const, label: 'Fat', unit: 'g', accent: 'rose', big: false },
+];
+
+const accentStyles: Record<string, { card: string; label: string; value: string }> = {
+  emerald: {
+    card: 'border-emerald-200/80 bg-emerald-50/70',
+    label: 'text-emerald-700/80',
+    value: 'text-emerald-900',
+  },
+  blue: {
+    card: 'border-blue-200/70 bg-blue-50/50',
+    label: 'text-blue-600/80',
+    value: 'text-slate-900',
+  },
+  amber: {
+    card: 'border-amber-200/70 bg-amber-50/50',
+    label: 'text-amber-600/80',
+    value: 'text-slate-900',
+  },
+  rose: {
+    card: 'border-rose-200/70 bg-rose-50/50',
+    label: 'text-rose-600/80',
+    value: 'text-slate-900',
+  },
+};
+
 export default function PreferencesPage() {
   const DASHBOARD_WELCOME_KEY = 'nutrilens:onboarding:dashboard-welcome';
   const router = useRouter();
@@ -154,7 +187,6 @@ export default function PreferencesPage() {
   const [showProcessing, setShowProcessing] = useState(false);
   const [targetsReady, setTargetsReady] = useState(false);
   const [showReveal, setShowReveal] = useState(false);
-  const [showCards, setShowCards] = useState(false);
   const [counterTrigger, setCounterTrigger] = useState(0);
   const [pendingPreferences, setPendingPreferences] = useState<FormValues | null>(null);
   const [targetDraft, setTargetDraft] = useState<TargetDraft | null>(null);
@@ -201,7 +233,7 @@ export default function PreferencesPage() {
       if (visible >= 3) {
         window.clearInterval(intervalId);
       }
-    }, 150);
+    }, 160);
 
     return () => {
       window.clearInterval(intervalId);
@@ -213,7 +245,6 @@ export default function PreferencesPage() {
     setTargetsReady(false);
     setPendingPreferences(values);
     setShowReveal(false);
-    setShowCards(false);
     setLockButtonSuccess(false);
     setShowCompletionPanel(false);
     setCompletionVisibleCount(0);
@@ -241,9 +272,16 @@ export default function PreferencesPage() {
   };
 
   const caloriesAnimated = useAnimatedValue(targetDraft?.goal_calories ?? 0, counterTrigger, 0);
-  const proteinAnimated = useAnimatedValue(targetDraft?.protein_g ?? 0, counterTrigger, 150);
-  const carbsAnimated = useAnimatedValue(targetDraft?.carbs_g ?? 0, counterTrigger, 300);
-  const fatAnimated = useAnimatedValue(targetDraft?.fat_g ?? 0, counterTrigger, 450);
+  const proteinAnimated = useAnimatedValue(targetDraft?.protein_g ?? 0, counterTrigger, 120);
+  const carbsAnimated = useAnimatedValue(targetDraft?.carbs_g ?? 0, counterTrigger, 240);
+  const fatAnimated = useAnimatedValue(targetDraft?.fat_g ?? 0, counterTrigger, 360);
+
+  const animatedValues = {
+    goal_calories: caloriesAnimated,
+    protein_g: proteinAnimated,
+    carbs_g: carbsAnimated,
+    fat_g: fatAnimated,
+  };
 
   const handleDraftChange = (field: keyof TargetDraft, value: number) => {
     if (!targetDraft) return;
@@ -289,9 +327,9 @@ export default function PreferencesPage() {
           setIsExitingToDashboard(true);
           const routeTimer = window.setTimeout(() => {
             router.push(response.redirect_to);
-          }, 350);
+          }, 380);
           transitionTimersRef.current.push(routeTimer);
-        }, 1100);
+        }, 1200);
 
         transitionTimersRef.current.push(bridgeTransitionTimer);
       }, 300);
@@ -306,386 +344,446 @@ export default function PreferencesPage() {
   };
 
   return (
-    <div
-      className={cn(
-        'transition-[opacity,transform] duration-[350ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
-        isExitingToDashboard ? 'scale-[0.98] opacity-0' : 'scale-100 opacity-100'
-      )}
+    <motion.div
+      animate={isExitingToDashboard ? { opacity: 0, scale: 0.97 } : { opacity: 1, scale: 1 }}
+      transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
     >
       <div
         className={cn(
-          'relative overflow-hidden rounded-[18px] border border-white/75 bg-white/92 p-7 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.45)] transition-[transform,opacity] duration-400 md:p-8',
+          'relative overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/95 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.46)] transition-[transform,opacity] duration-300',
           showProcessing ? 'scale-[0.98] opacity-85' : 'scale-100 opacity-100'
         )}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#1B7D5A] via-[#22956B] to-[#E29D4A]" />
 
-        {showReveal && targetDraft ? (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-[-0.015em] text-slate-900">
-                {firstName ? `${firstName}, your plan is ready.` : 'Your plan is ready.'}
-              </h2>
-              <p className="text-sm leading-6 text-slate-600">Here&apos;s your personalized starting point.</p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div
-                className={cn(
-                  'rounded-[18px] border border-emerald-200/80 bg-emerald-50/70 p-4 transition-[opacity,transform] duration-400',
-                  showCards ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-                )}
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-700/80">Calories</p>
-                <p className="mt-1 text-3xl font-semibold text-emerald-900">{caloriesAnimated}</p>
-                <p className="text-xs text-emerald-700/80">per day</p>
-              </div>
-
-              <div
-                className={cn(
-                  'rounded-[18px] border border-slate-200 bg-white p-4 transition-[opacity,transform] duration-400 delay-150',
-                  showCards ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
-                )}
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Protein</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{proteinAnimated}g</p>
-              </div>
-
-              <div
-                className={cn(
-                  'rounded-[18px] border border-slate-200 bg-white p-4 transition-[opacity,transform] duration-400 delay-300',
-                  showCards ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
-                )}
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Carbs</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{carbsAnimated}g</p>
-              </div>
-
-              <div
-                className={cn(
-                  'rounded-[18px] border border-slate-200 bg-white p-4 transition-opacity duration-400 delay-500',
-                  showCards ? 'opacity-100' : 'opacity-0'
-                )}
-              >
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Fat</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{fatAnimated}g</p>
-              </div>
-            </div>
-
-            <div className="rounded-[18px] border border-slate-200 bg-white/85 p-5">
-              <p className="text-sm text-slate-600">You can fine-tune these before locking them in.</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Calories</Label>
-                  <Input
-                    type="number"
-                    value={targetDraft.goal_calories}
-                    onChange={(event) => handleDraftChange('goal_calories', event.target.valueAsNumber)}
-                    className="mt-1 h-11 rounded-[14px] border-slate-200"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Protein (g)</Label>
-                  <Input
-                    type="number"
-                    value={targetDraft.protein_g}
-                    onChange={(event) => handleDraftChange('protein_g', event.target.valueAsNumber)}
-                    className="mt-1 h-11 rounded-[14px] border-slate-200"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Carbs (g)</Label>
-                  <Input
-                    type="number"
-                    value={targetDraft.carbs_g}
-                    onChange={(event) => handleDraftChange('carbs_g', event.target.valueAsNumber)}
-                    className="mt-1 h-11 rounded-[14px] border-slate-200"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">Fat (g)</Label>
-                  <Input
-                    type="number"
-                    value={targetDraft.fat_g}
-                    onChange={(event) => handleDraftChange('fat_g', event.target.valueAsNumber)}
-                    className="mt-1 h-11 rounded-[14px] border-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isLocking}
-                  onClick={() => {
-                    setShowReveal(false);
-                    setShowCards(false);
-                    setIsSubmitting(false);
-                  }}
-                  className="h-11 rounded-[14px] border-slate-200 px-5"
+        {/* AnimatePresence crossfades between the form view and reveal view */}
+        <AnimatePresence mode="wait">
+          {showReveal && targetDraft ? (
+            <motion.div
+              key="reveal"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: SPRING_EASE }}
+              className="p-7 md:p-8"
+            >
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1B7D5A]">
+                  Final Review
+                </p>
+                <h2
+                  className="text-[28px] font-medium tracking-[-0.024em] text-slate-900 md:text-[30px]"
+                  style={{ fontFamily: "var(--font-onboarding-serif), Georgia, serif" }}
                 >
-                  Back to preferences
-                </Button>
-                <Button
-                  type="button"
-                  disabled={isLocking}
-                  onClick={handleFinalize}
-                  className={cn(
-                    'relative h-11 min-w-[188px] overflow-hidden rounded-[14px] bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-white transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_16px_30px_-18px_rgba(5,150,105,0.75)]',
-                    lockButtonSuccess
-                      ? 'from-emerald-500 to-teal-500 shadow-[0_0_0_8px_rgba(16,185,129,0.14)]'
-                      : ''
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
-                      !isLocking && !lockButtonSuccess ? 'opacity-100' : 'opacity-0'
-                    )}
-                  >
-                    Lock in my targets
-                  </span>
-                  <span
-                    className={cn(
-                      'absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
-                      isLocking ? 'opacity-100' : 'opacity-0'
-                    )}
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Locking...
-                  </span>
-                  <span
-                    className={cn(
-                      'absolute inset-0 flex items-center justify-center gap-2 transition-[opacity,transform] duration-300',
-                      lockButtonSuccess ? 'scale-100 opacity-100' : 'scale-[0.8] opacity-0'
-                    )}
-                  >
-                    <Check className="h-4 w-4" />
-                    Targets locked
-                  </span>
-                </Button>
+                  {firstName ? `${firstName}, your plan is ready.` : 'Your plan is ready.'}
+                </h2>
+                <p className="text-[14px] leading-relaxed text-slate-500">
+                  Here&apos;s your personalized starting point.
+                </p>
               </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-[-0.015em] text-slate-900">Final step: Your preferences</h2>
-              <p className="text-sm leading-6 text-slate-600">Help us fine-tune your nutrition plan.</p>
-            </div>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="mt-7 space-y-6">
-                <div className="space-y-4 rounded-[18px] border border-slate-200 bg-white/85 p-5">
-                  <FormField
-                    control={form.control}
-                    name="dietary_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
-                          Dietary preference
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 w-full rounded-[16px] border-slate-200 bg-white/90">
-                              <SelectValue placeholder="Select dietary type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="rounded-[14px] border-slate-200 bg-white/96">
-                            <SelectItem value="non_vegetarian">
-                              <div className="flex items-center gap-2">
-                                <Beef className="h-4 w-4" />
-                                Non-vegetarian
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="vegetarian">
-                              <div className="flex items-center gap-2">
-                                <Salad className="h-4 w-4" />
-                                Vegetarian
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="vegan">
-                              <div className="flex items-center gap-2">
-                                <Leaf className="h-4 w-4" />
-                                Vegan
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="pescatarian">
-                              <div className="flex items-center gap-2">
-                                <Fish className="h-4 w-4" />
-                                Pescatarian
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="allergies"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
-                          Allergies (optional)
-                        </FormLabel>
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                          {allergyOptions.map((allergy) => (
-                            <FormField
-                              key={allergy.value}
-                              control={form.control}
-                              name="allergies"
-                              render={({ field }) => (
-                                <FormItem className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 bg-white/80 px-3 py-2.5">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(allergy.value)}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        const next = checked
-                                          ? [...current, allergy.value]
-                                          : current.filter((value) => value !== allergy.value);
-                                        field.onChange(next);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="cursor-pointer font-normal text-slate-700">{allergy.label}</FormLabel>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-4 rounded-[18px] border border-slate-200 bg-white/85 p-5">
-                  <FormField
-                    control={form.control}
-                    name="cuisine_preferences"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
-                          Favorite cuisines
-                        </FormLabel>
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                          {cuisineOptions.map((cuisine) => (
-                            <FormField
-                              key={cuisine.value}
-                              control={form.control}
-                              name="cuisine_preferences"
-                              render={({ field }) => (
-                                <FormItem className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 bg-white/80 px-3 py-2.5">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(cuisine.value)}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        const next = checked
-                                          ? [...current, cuisine.value]
-                                          : current.filter((value) => value !== cuisine.value);
-                                        field.onChange(next);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="cursor-pointer font-normal text-slate-700">{cuisine.label}</FormLabel>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="max_prep_time_weekday"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
-                            Weekday prep time (min)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              value={field.value}
-                              onChange={(event) => field.onChange(event.target.valueAsNumber)}
-                              disabled={isSubmitting}
-                              className="h-12 rounded-[14px] border-slate-200"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+              {/* Macro summary cards */}
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {macroCards.map((card, index) => {
+                  const styles = accentStyles[card.accent];
+                  const displayValue = animatedValues[card.key];
+                  return (
+                    <motion.div
+                      key={card.key}
+                      className={cn(
+                        'rounded-[18px] border p-4',
+                        styles.card
                       )}
+                      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{
+                        duration: 0.38,
+                        ease: SPRING_EASE,
+                        delay: index * 0.08,
+                      }}
+                    >
+                      <p className={cn('text-xs font-semibold uppercase tracking-[0.12em]', styles.label)}>
+                        {card.label}
+                      </p>
+                      <p className={cn('mt-1 font-semibold leading-none tracking-tight', styles.value, card.big ? 'text-[34px]' : 'text-[26px]')}>
+                        {displayValue.toLocaleString()}
+                        <span className="text-sm font-normal opacity-60">{card.unit || ' kcal'}</span>
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Fine-tune inputs */}
+              <motion.div
+                className="mt-5 rounded-[18px] border border-slate-200 bg-white/85 p-5"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.36, ease: SPRING_EASE, delay: 0.35 }}
+              >
+                <p className="text-sm text-slate-500">
+                  You can fine-tune these before locking them in.
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                      Calories
+                    </Label>
+                    <Input
+                      type="number"
+                      value={targetDraft.goal_calories}
+                      onChange={(event) => handleDraftChange('goal_calories', event.target.valueAsNumber)}
+                      className="mt-1 h-11 rounded-[14px] border-slate-200"
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="max_prep_time_weekend"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
-                            Weekend prep time (min)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              value={field.value}
-                              onChange={(event) => field.onChange(event.target.valueAsNumber)}
-                              disabled={isSubmitting}
-                              className="h-12 rounded-[14px] border-slate-200"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                      Protein (g)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={targetDraft.protein_g}
+                      onChange={(event) => handleDraftChange('protein_g', event.target.valueAsNumber)}
+                      className="mt-1 h-11 rounded-[14px] border-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                      Carbs (g)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={targetDraft.carbs_g}
+                      onChange={(event) => handleDraftChange('carbs_g', event.target.valueAsNumber)}
+                      className="mt-1 h-11 rounded-[14px] border-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                      Fat (g)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={targetDraft.fat_g}
+                      onChange={(event) => handleDraftChange('fat_g', event.target.valueAsNumber)}
+                      className="mt-1 h-11 rounded-[14px] border-slate-200"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.back()}
-                    disabled={isSubmitting}
-                    className="h-12 rounded-[16px] border-slate-200 px-6"
+                    disabled={isLocking}
+                    onClick={() => {
+                      setShowReveal(false);
+                      setIsSubmitting(false);
+                    }}
+                    className="h-11 rounded-[14px] border-slate-200 px-5"
                   >
-                    Back
+                    Back to preferences
                   </Button>
 
                   <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isSubmitting}
-                    className="relative h-12 w-full overflow-hidden rounded-[16px] bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_16px_30px_-20px_rgba(5,150,105,0.7)] transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 hover:shadow-[0_20px_34px_-20px_rgba(5,150,105,0.82)] sm:w-[286px]"
+                    type="button"
+                    disabled={isLocking}
+                    onClick={handleFinalize}
+                    className={cn(
+                      'relative h-11 min-w-[188px] overflow-hidden rounded-[14px] bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-white transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_16px_30px_-18px_rgba(5,150,105,0.75)] active:scale-[0.98]',
+                      lockButtonSuccess ? 'from-emerald-500 to-teal-500 shadow-[0_0_0_8px_rgba(16,185,129,0.14)]' : ''
+                    )}
                   >
-                    <span className={cn('transition-opacity duration-200', isSubmitting ? 'opacity-0' : 'opacity-100')}>
-                      Generate my personalized targets
+                    <span
+                      className={cn(
+                        'absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
+                        !isLocking && !lockButtonSuccess ? 'opacity-100' : 'opacity-0'
+                      )}
+                    >
+                      Lock in my targets
                     </span>
                     <span
                       className={cn(
-                        'pointer-events-none absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
-                        isSubmitting ? 'opacity-100' : 'opacity-0'
+                        'absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
+                        isLocking ? 'opacity-100' : 'opacity-0'
                       )}
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
+                      Locking...
+                    </span>
+                    <span
+                      className={cn(
+                        'absolute inset-0 flex items-center justify-center gap-2 transition-[opacity,transform] duration-300',
+                        lockButtonSuccess ? 'scale-100 opacity-100' : 'scale-[0.8] opacity-0'
+                      )}
+                    >
+                      <Check className="h-4 w-4" />
+                      Targets locked
                     </span>
                   </Button>
                 </div>
-              </form>
-            </Form>
-          </>
-        )}
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+              className="p-7 md:p-8"
+            >
+              <motion.div
+                className="space-y-1.5"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.38, ease: SPRING_EASE }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1B7D5A]">
+                  Step 4 of 4
+                </p>
+                <h2
+                  className="text-[28px] font-medium tracking-[-0.024em] text-slate-900 md:text-[30px]"
+                  style={{ fontFamily: "var(--font-onboarding-serif), Georgia, serif" }}
+                >
+                  Final step: Your preferences
+                </h2>
+                <p className="text-[14px] leading-relaxed text-slate-500">
+                  Help us fine-tune your nutrition plan.
+                </p>
+              </motion.div>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-7 space-y-6">
+                  <motion.div
+                    className="space-y-4 rounded-[18px] border border-slate-200 bg-white/85 p-5"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.38, ease: SPRING_EASE, delay: 0.07 }}
+                  >
+                    <FormField
+                      control={form.control}
+                      name="dietary_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                            Dietary preference
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
+                            <FormControl>
+                              <SelectTrigger className="h-12 w-full rounded-[16px] border-slate-200 bg-white/90">
+                                <SelectValue placeholder="Select dietary type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-[14px] border-slate-200 bg-white/96">
+                              <SelectItem value="non_vegetarian">
+                                <div className="flex items-center gap-2">
+                                  <Beef className="h-4 w-4" />
+                                  Non-vegetarian
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="vegetarian">
+                                <div className="flex items-center gap-2">
+                                  <Salad className="h-4 w-4" />
+                                  Vegetarian
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="vegan">
+                                <div className="flex items-center gap-2">
+                                  <Leaf className="h-4 w-4" />
+                                  Vegan
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="pescatarian">
+                                <div className="flex items-center gap-2">
+                                  <Fish className="h-4 w-4" />
+                                  Pescatarian
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="allergies"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                            Allergies (optional)
+                          </FormLabel>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            {allergyOptions.map((allergy) => (
+                              <FormField
+                                key={allergy.value}
+                                control={form.control}
+                                name="allergies"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 bg-white/80 px-3 py-2.5">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(allergy.value)}
+                                        onCheckedChange={(checked) => {
+                                          const current = field.value ?? [];
+                                          const next = checked
+                                            ? [...current, allergy.value]
+                                            : current.filter((value) => value !== allergy.value);
+                                          field.onChange(next);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="cursor-pointer font-normal text-slate-700">
+                                      {allergy.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    className="space-y-4 rounded-[18px] border border-slate-200 bg-white/85 p-5"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.38, ease: SPRING_EASE, delay: 0.14 }}
+                  >
+                    <FormField
+                      control={form.control}
+                      name="cuisine_preferences"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                            Favorite cuisines
+                          </FormLabel>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            {cuisineOptions.map((cuisine) => (
+                              <FormField
+                                key={cuisine.value}
+                                control={form.control}
+                                name="cuisine_preferences"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center gap-2 rounded-[12px] border border-slate-200/80 bg-white/80 px-3 py-2.5">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(cuisine.value)}
+                                        onCheckedChange={(checked) => {
+                                          const current = field.value ?? [];
+                                          const next = checked
+                                            ? [...current, cuisine.value]
+                                            : current.filter((value) => value !== cuisine.value);
+                                          field.onChange(next);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="cursor-pointer font-normal text-slate-700">
+                                      {cuisine.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="max_prep_time_weekday"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                              Weekday prep time (min)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                value={field.value}
+                                onChange={(event) => field.onChange(event.target.valueAsNumber)}
+                                disabled={isSubmitting}
+                                className="h-12 rounded-[14px] border-slate-200"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="max_prep_time_weekend"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium uppercase tracking-[0.1em] text-slate-500">
+                              Weekend prep time (min)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                value={field.value}
+                                onChange={(event) => field.onChange(event.target.valueAsNumber)}
+                                disabled={isSubmitting}
+                                className="h-12 rounded-[14px] border-slate-200"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.36, ease: SPRING_EASE, delay: 0.22 }}
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.back()}
+                      disabled={isSubmitting}
+                      className="h-12 rounded-[16px] border-slate-200 px-6"
+                    >
+                      Back
+                    </Button>
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={isSubmitting}
+                      className="relative h-12 w-full overflow-hidden rounded-[16px] bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_16px_30px_-20px_rgba(5,150,105,0.7)] transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 hover:shadow-[0_20px_34px_-20px_rgba(5,150,105,0.82)] active:scale-[0.98] sm:w-[286px]"
+                    >
+                      <span className={cn('transition-opacity duration-200', isSubmitting ? 'opacity-0' : 'opacity-100')}>
+                        Generate my personalized targets
+                      </span>
+                      <span
+                        className={cn(
+                          'pointer-events-none absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200',
+                          isSubmitting ? 'opacity-100' : 'opacity-0'
+                        )}
+                      >
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </span>
+                    </Button>
+                  </motion.div>
+                </form>
+              </Form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <StepTransitionOverlay
@@ -706,53 +804,80 @@ export default function PreferencesPage() {
           setShowReveal(true);
           setIsSubmitting(false);
           setCounterTrigger((previous) => previous + 1);
-          window.requestAnimationFrame(() => {
-            setShowCards(true);
-          });
         }}
       />
 
-      <div
-        className={cn(
-          'fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/15 px-6 backdrop-blur-[2px] transition-opacity duration-300',
-          showCompletionPanel ? (isExitingToDashboard ? 'opacity-0' : 'opacity-100') : 'pointer-events-none opacity-0'
-        )}
-      >
-        <div className="pointer-events-none absolute h-64 w-64 rounded-full bg-emerald-300/20 blur-3xl" />
-        <div className="relative w-full max-w-md rounded-[18px] border border-white/75 bg-white/95 p-6 shadow-[0_30px_60px_-35px_rgba(15,23,42,0.45)]">
-          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-            {showCompletionPanel ? (
-              <span
-                className="pointer-events-none absolute inset-0 rounded-full border border-emerald-300/70"
-                style={{ animation: 'ping 700ms cubic-bezier(0, 0, 0.2, 1) 1' }}
-              />
-            ) : null}
-            <Check className="h-6 w-6" />
-          </div>
+      {/* Completion panel */}
+      <AnimatePresence>
+        {showCompletionPanel && (
+          <motion.div
+            className="fixed inset-0 z-[95] flex items-start justify-center overflow-y-auto px-6 py-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isExitingToDashboard ? 0 : 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.32 }}
+            style={{ background: 'rgba(2, 6, 23, 0.18)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          >
+            <motion.div
+              className="relative my-auto w-full max-w-md overflow-hidden rounded-[22px] border border-white/75 bg-[linear-gradient(165deg,#ffffff_0%,#f9f9f2_52%,#ffffff_100%)] p-7 shadow-[0_32px_72px_-36px_rgba(15,23,42,0.5)]"
+              initial={{ scale: 0.92, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {/* Ambient glow */}
+              <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-300/20 blur-3xl" />
+              <div className="pointer-events-none absolute right-0 top-4 h-32 w-32 translate-x-1/3 rounded-full bg-amber-300/20 blur-3xl" />
 
-          <h3 className="text-center text-2xl font-semibold tracking-[-0.015em] text-slate-900">
-            {firstName ? `You're all set, ${firstName}.` : "You're all set."}
-          </h3>
-          <p className="mt-2 text-center text-sm text-slate-600">
-            Your personalized nutrition plan is ready to go.
-          </p>
-
-          <div className="mt-5 space-y-2">
-            {['Targets locked', 'Profile calibrated', 'Ready to start tracking'].map((line, index) => (
-              <div
-                key={line}
-                className={cn(
-                  'flex items-center gap-2 rounded-[12px] border border-slate-200/90 bg-white/90 px-3 py-2 text-sm text-slate-700 transition-[opacity,transform] duration-300',
-                  completionVisibleCount > index ? 'translate-y-0 opacity-100' : 'translate-y-2.5 opacity-0'
-                )}
-              >
-                <Check className="h-4 w-4 text-emerald-600" />
-                <span>{line}</span>
+              {/* Check icon */}
+              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center">
+                <motion.div
+                  className="absolute inset-0 rounded-full border border-emerald-400/50"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                />
+                <motion.div
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <Check className="h-7 w-7 text-emerald-600" />
+                </motion.div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+
+              <h3 className="text-center text-[22px] font-semibold tracking-[-0.015em] text-slate-900">
+                {firstName ? `You're all set, ${firstName}.` : "You're all set."}
+              </h3>
+              <p className="mt-2 text-center text-sm text-slate-500">
+                Your personalized nutrition plan is ready to go.
+              </p>
+
+              <div className="mt-5 space-y-2">
+                {(['Targets locked', 'Profile calibrated', 'Ready to start tracking'] as const).map((line, index) => (
+                  <motion.div
+                    key={line}
+                    className="flex items-center gap-2.5 rounded-[12px] border border-slate-200/90 bg-white/90 px-3.5 py-2.5 text-sm text-slate-700"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={
+                      completionVisibleCount > index
+                        ? { opacity: 1, y: 0 }
+                        : { opacity: 0, y: 10 }
+                    }
+                    transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                      <Check className="h-3 w-3 text-emerald-600" />
+                    </div>
+                    <span>{line}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
+

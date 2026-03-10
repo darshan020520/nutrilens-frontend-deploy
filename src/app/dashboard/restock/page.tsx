@@ -46,14 +46,13 @@ function getRunningOutText(item: RestockItem): string {
 function getUrgencyColor(item: RestockItem): string {
   const days = item.days_until_depleted;
   if (typeof days === "number") {
-    if (days <= 0) return "#C55E58";
-    if (days <= 2) return "#D8A352";
-    if (days <= 5) return "#CDBE74";
-    return "#6A9C7B";
+    if (days <= 0) return "#EF4444";
+    if (days <= 2) return "#FBBF24";
+    return "#CBD5E1";
   }
-  if (item.priority === "urgent") return "#C55E58";
-  if (item.priority === "soon") return "#D8A352";
-  return "#6A9C7B";
+  if (item.priority === "urgent") return "#EF4444";
+  if (item.priority === "soon") return "#FBBF24";
+  return "#CBD5E1";
 }
 
 function getGroupMeta(group: GroupKey): { title: string } {
@@ -510,10 +509,10 @@ export default function RestockPage() {
         <div className="mx-auto max-w-[1200px] space-y-8 px-8 pb-12 pt-2 text-[#2F2A24]">
           <section
             ref={heroRef}
-            className={`hero-wrapper relative flex flex-col justify-between overflow-hidden rounded-[22px] border border-[#ECE3D6] bg-gradient-to-br from-[#F8F5F0] to-[#EEE8DE] p-8 shadow-[0_6px_20px_rgba(0,0,0,0.05),0_24px_42px_rgba(0,0,0,0.05)] ${
+            className={`hero-wrapper relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/12 bg-[linear-gradient(135deg,#14533C,#1B7D5A)] p-8 text-white shadow-[0_6px_20px_rgba(0,0,0,0.05),0_24px_42px_rgba(0,0,0,0.05)] ${
               isInstantClosingAI ? "transition-none" : "transition-[background,box-shadow] duration-300"
             } ${
-              isAIActive ? "bg-[linear-gradient(120deg,#F8F4ED_0%,#EFE7DD_100%)] bg-[length:200%_200%] [animation:restock-hero-drift_10s_ease_infinite_alternate]" : ""
+              isAIActive ? "bg-[linear-gradient(120deg,#0F4C35_0%,#1A6B4C_100%)] bg-[length:200%_200%] [animation:restock-hero-drift_10s_ease_infinite_alternate]" : ""
             }`}
           >
             <button
@@ -521,10 +520,10 @@ export default function RestockPage() {
               onClick={() => (isAIActive ? deactivateAI() : activateAI(false))}
               className={`absolute right-4 top-1/2 z-20 -translate-y-1/2 rounded-[12px] border px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] transition-all duration-260 [writing-mode:vertical-rl] ${
                 isAIActive
-                  ? "border-[#2F6F5E] bg-[#EFE9E1] text-[#2F6F5E] shadow-[0_0_0_4px_rgba(47,111,94,0.12)]"
+                  ? "border-[#34D399]/40 bg-white/15 text-[#34D399]"
                   : isAITabInvite
-                    ? "border-[#2F6F5E] bg-[#F3EFE9] text-[#2F6F5E]"
-                    : "border-[#D9D2C8] bg-[#F6F2EC] text-[#455448]"
+                    ? "border-[#34D399]/40 bg-white/12 text-[#34D399]"
+                    : "border-white/12 bg-white/10 text-white/50"
               }`}
             >
               AI Insight
@@ -534,27 +533,27 @@ export default function RestockPage() {
               isInstantClosingAI ? "transition-none" : "transition-[opacity,transform] duration-260"
             } ${isAIActive ? "pointer-events-none -translate-y-[10px] opacity-0" : "opacity-100"}`}>
               <div>
-                <p className="hero-eyebrow text-[12px] uppercase tracking-[0.12em] text-[#6B7280]">Shopping List</p>
-                <h1 className="hero-title mt-2 text-[34px] font-semibold tracking-[-0.01em] text-[#2A2A2A]">
+                <p className="hero-eyebrow text-[12px] uppercase tracking-[0.12em] text-white/40">Shopping List</p>
+                <h1 className="hero-title mt-2 text-[34px] font-semibold tracking-[-0.01em] text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
                   Everything you need today.
                 </h1>
-                <p className="hero-meta mt-1.5 text-[13px] font-medium text-[#6B7280]">{remainingItems} items &middot; {urgentCount} urgent</p>
+                <p className="hero-meta mt-1.5 text-[13px] font-medium text-white/55">{remainingItems} items &middot; {urgentCount} urgent</p>
               </div>
 
               <div className="w-full max-w-[280px] space-y-3">
-                <p className="text-[13px] text-[#655E54]">{pickedUpCount} / {totalForSession} picked up</p>
-                <div className="h-[6px] overflow-hidden rounded-full bg-[#DDD5C9]">
+                <p className="text-[13px] text-white/55">{pickedUpCount} / {totalForSession} picked up</p>
+                <div className="h-[6px] overflow-hidden rounded-full bg-white/15">
                   <div
-                    className="h-[6px] rounded-full bg-gradient-to-r from-[#2F6F5E] to-[#5A9A7E] transition-[width] duration-300 ease-out"
+                    className="h-[6px] rounded-full bg-gradient-to-r from-[#34D399] to-[#22956B] transition-[width] duration-300 ease-out"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
                 <div className="flex justify-start gap-1 pt-1">
-                  <Button variant="ghost" className="h-8 rounded-[10px] px-2.5 text-[#5B5348] hover:bg-white/55" onClick={copyList}>
+                  <Button variant="ghost" className="h-8 rounded-[10px] px-2.5 text-white/70 hover:bg-white/15 hover:text-white" onClick={copyList}>
                     <Copy className="mr-1.5 h-4 w-4" />
                     Copy
                   </Button>
-                  <Button variant="ghost" className="h-8 rounded-[10px] px-2.5 text-[#5B5348] hover:bg-white/55" onClick={exportList}>
+                  <Button variant="ghost" className="h-8 rounded-[10px] px-2.5 text-white/70 hover:bg-white/15 hover:text-white" onClick={exportList}>
                     <Download className="mr-1.5 h-4 w-4" />
                     Export
                   </Button>
@@ -569,18 +568,18 @@ export default function RestockPage() {
                 <button
                   type="button"
                   onClick={deactivateAI}
-                  className="absolute right-0 top-0 border-b border-[rgba(47,111,94,0.2)] bg-transparent pb-0.5 text-[13px] font-medium text-[#4A4A4A]/60 transition-opacity hover:text-[#4A4A4A]"
+                  className="absolute right-0 top-0 border-b border-white/20 bg-transparent pb-0.5 text-[13px] font-medium text-white/40 transition-opacity hover:text-white/70"
                 >
                   Close
                 </button>
-                <p className="text-[12px] font-semibold uppercase tracking-[1px] text-[#2F6F5E]">AI Insight</p>
-                <h2 className="mt-1 text-[24px] font-semibold leading-[1.15] tracking-[-0.01em] text-[#2A2A2A]">
+                <p className="text-[12px] font-semibold uppercase tracking-[1px] text-white/40">AI Insight</p>
+                <h2 className="mt-1 text-[24px] font-semibold leading-[1.15] tracking-[-0.01em] text-white" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
                   Smart tips for today
                 </h2>
                 <div className="mt-2 flex max-w-[820px] items-start">
-                  <span className="mr-5 mt-1 h-[130px] w-[4px] shrink-0 rounded-[2px] bg-gradient-to-b from-[#2F6F5E] to-[#4B8F7B] shadow-[0_0_14px_rgba(47,111,94,0.28)]" />
+                  <span className="mr-5 mt-1 h-[130px] w-[4px] shrink-0 rounded-[2px] bg-gradient-to-b from-[#34D399] to-[#22956B] shadow-[0_0_14px_rgba(47,111,94,0.28)]" />
                   <div
-                    className="max-w-[580px] whitespace-pre-line text-[14px] leading-[1.3] text-[#374151]"
+                    className="max-w-[580px] whitespace-pre-line text-[14px] leading-[1.3] text-white/55"
                   >
                     {aiStreamText}
                   </div>
@@ -595,10 +594,10 @@ export default function RestockPage() {
                 key={pill.key}
                 type="button"
                 onClick={() => setActiveFilter(pill.key)}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200 ${
+                className={`rounded-lg px-3.5 py-1.5 text-[13px] transition-all duration-200 ${
                   activeFilter === pill.key
-                    ? "bg-[#2F6F5E] text-white shadow-[0_6px_12px_rgba(47,111,94,0.22)]"
-                    : "bg-white/85 text-[#5D554A] hover:bg-white"
+                    ? "bg-emerald-600 font-semibold text-white"
+                    : "bg-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {pill.label} <span className="opacity-80">{pill.count}</span>
@@ -627,8 +626,8 @@ export default function RestockPage() {
                   <section key={groupKey} className="space-y-4">
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <h2 className="text-[21px] font-semibold tracking-[-0.01em] text-[#2F2A24]">
-                          {group.title} <span className="text-[16px] font-medium text-[#7B7468]">({rows.length})</span>
+                        <h2 className="text-[19px] font-medium text-slate-900" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                          {group.title} <span className="text-[16px] font-medium text-slate-400">({rows.length})</span>
                         </h2>
                       </div>
                     </div>
@@ -646,38 +645,38 @@ export default function RestockPage() {
                         return (
                           <article
                             key={`${groupKey}-${item.item_id}`}
-                            className={`restock-item relative mb-5 overflow-hidden rounded-[18px] border border-[#ECE3D6] bg-[#FAF7F2] px-[22px] py-[22px] shadow-[0_8px_20px_rgba(0,0,0,0.05)] transition-[opacity,transform,box-shadow] duration-300 ${
-                              isRemoving ? "-translate-y-[6px] opacity-0" : isPurchased ? "opacity-70" : "opacity-100 hover:-translate-y-[2px] hover:shadow-[0_10px_25px_rgba(0,0,0,0.05)]"
+                            className={`restock-item relative mb-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 transition-all duration-200 ${
+                              isRemoving ? "-translate-y-[6px] opacity-0" : isPurchased ? "opacity-70" : "opacity-100 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
                             }`}
                           >
                             <div className="space-y-4">
                               <div className="min-w-0">
                                 <div className="flex items-center">
                                   <span className="urgency-dot mr-3 h-2.5 w-2.5 shrink-0 translate-y-px rounded-full" style={{ backgroundColor: urgencyColor }} />
-                                  <h3 className="truncate text-[18px] font-semibold text-[#2A2A2A]">
+                                  <h3 className="truncate text-[15px] font-semibold text-slate-900">
                                     {item.item_name || "Unnamed item"}
                                   </h3>
                                 </div>
-                                <p className="mt-1 text-[13px] text-[#6C645A]">{formatCategory(item.category)}</p>
+                                <p className="mt-1 text-[12px] text-slate-400">{formatCategory(item.category)}</p>
                               </div>
 
-                              {runningOutText ? <p className="text-[14px] text-[#4E473F]">{runningOutText}</p> : null}
+                              {runningOutText ? <p className="text-[13px] text-slate-500">{runningOutText}</p> : null}
 
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <p className="mb-1 text-[12px] text-[#7A7165]">Buy</p>
-                                  <div className="qty-control inline-flex items-center rounded-full bg-[#F3F4F6] p-1">
+                                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Buy</p>
+                                  <div className="qty-control inline-flex items-center rounded-lg border border-slate-200">
                                     <button
                                       type="button"
                                       onClick={() => updateQuantity(item, -10)}
                                       disabled={isSaving || isPurchased}
-                                      className="h-8 w-8 rounded-full bg-white text-[#5A5247] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-transform duration-150 hover:bg-[#FCFCFC] active:scale-95 disabled:opacity-50"
+                                      className="h-8 w-8 text-slate-500 transition-transform duration-150 hover:bg-slate-50 active:scale-95 disabled:opacity-50"
                                       aria-label={`Decrease ${item.item_name} quantity`}
                                     >
                                       <Minus className="mx-auto h-4 w-4" />
                                     </button>
 
-                                    <span className={`mx-3 inline-block min-w-[78px] text-center text-[14px] font-medium text-[#3E372F] transition-all duration-150 ${isPulsing ? "scale-110 opacity-100" : "scale-100 opacity-90"}`}>
+                                    <span className={`mx-3 inline-block min-w-[48px] text-center text-[13px] font-semibold text-slate-800 transition-all duration-150 ${isPulsing ? "scale-110 opacity-100" : "scale-100 opacity-90"}`}>
                                       {formatQuantity(quantity)}
                                     </span>
 
@@ -685,7 +684,7 @@ export default function RestockPage() {
                                       type="button"
                                       onClick={() => updateQuantity(item, 10)}
                                       disabled={isSaving || isPurchased}
-                                      className="h-8 w-8 rounded-full bg-white text-[#5A5247] shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-transform duration-150 hover:bg-[#FCFCFC] active:scale-95 disabled:opacity-50"
+                                      className="h-8 w-8 text-slate-500 transition-transform duration-150 hover:bg-slate-50 active:scale-95 disabled:opacity-50"
                                       aria-label={`Increase ${item.item_name} quantity`}
                                     >
                                       <Plus className="mx-auto h-4 w-4" />
@@ -696,10 +695,10 @@ export default function RestockPage() {
                                 <Button
                                   onClick={() => void markAsPurchased(item)}
                                   disabled={isSaving || isRemoving || hiddenItemIds.has(item.item_id)}
-                                  className={`purchased-btn h-8 rounded-full px-[14px] text-[13px] transition-all duration-200 ${
+                                  className={`purchased-btn h-8 rounded-lg px-[14px] text-[13px] transition-all duration-200 ${
                                     isPurchased || isSaving
-                                      ? "bg-[#2F6F5E] text-white hover:bg-[#2A6254]"
-                                      : "border border-[#D9D4CA] bg-white text-[#514A40] hover:bg-[#FBFAF7]"
+                                      ? "bg-emerald-50 font-semibold text-emerald-600 hover:bg-emerald-100"
+                                      : "border border-slate-200 bg-white text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
                                   }`}
                                 >
                                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
@@ -716,9 +715,9 @@ export default function RestockPage() {
               })}
 
               {!hasVisibleItems ? (
-                <div className="rounded-[18px] border border-[#E6DED0] bg-[#FBF8F2] px-6 py-10 text-center">
-                  <p className="text-[15px] font-medium text-[#4E463B]">You&apos;re done for now.</p>
-                  <p className="mt-1 text-[13px] text-[#71695D]">No items left for this filter.</p>
+                <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-10 text-center">
+                  <p className="text-[15px] font-medium text-slate-700">You&apos;re done for now.</p>
+                  <p className="mt-1 text-[13px] text-slate-400">No items left for this filter.</p>
                 </div>
               ) : null}
             </div>

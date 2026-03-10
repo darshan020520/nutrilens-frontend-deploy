@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -394,8 +393,14 @@ export function TodayView() {
   const fallbackInsightPrimary = nextPendingMeal ? "Logging your next meal keeps your daily nutrition rhythm steady." : "All meals completed today. Your nutrition targets are on track.";
   const fallbackInsightSecondary = nextPendingMeal ? "Consistent logging improves visibility and better meal decisions." : "Great consistency today helps reinforce long-term habits.";
   const aiInsightSentences = todayAiInsights.flatMap(splitInsightSentences);
-  const focusInsightPrimary = aiInsightSentences[0] ? compactInsightLine(aiInsightSentences[0], 94) : fallbackInsightPrimary;
-  const focusInsightSecondary = aiInsightSentences[1] ? compactInsightLine(aiInsightSentences[1], 110) : fallbackInsightSecondary;
+  const focusInsightPrimaryRaw = aiInsightSentences[0] ?? fallbackInsightPrimary;
+  const focusInsightSecondaryRaw = aiInsightSentences[1] ?? fallbackInsightSecondary;
+  const focusInsightFull = [focusInsightPrimaryRaw, focusInsightSecondaryRaw]
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join(" ");
+  const focusInsightPreview = compactInsightLine(focusInsightFull, 122);
+  const hasExpandableInsight = focusInsightPreview !== focusInsightFull;
 
   // ── Render ───────────────────────────────────────────────────────────
 
@@ -424,16 +429,16 @@ export function TodayView() {
 
         {/* Next Meal Card */}
         <div className="flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
-          <p className="text-[12px] font-medium text-slate-400">
+          <p className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-500">
             {nextPendingMeal
               ? `Up next · ${nextPendingMeal.meal_type} · ${formatPlannedTime(nextPendingMeal.planned_time)}`
               : "Up next"}
           </p>
 
           {nextPendingMeal ? (
-            <>
+            <div className="mt-3 rounded-2xl border border-emerald-100/80 bg-gradient-to-br from-emerald-50/55 via-white to-amber-50/45 p-4">
               <p
-                className="mt-2 text-[22px] font-semibold leading-[1.2] tracking-[-0.015em] text-slate-900"
+                className="text-[22px] font-semibold leading-[1.2] tracking-[-0.015em] text-slate-900"
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
                 {nextPendingMeal.recipe}
@@ -462,7 +467,7 @@ export function TodayView() {
                   Skip
                 </Button>
               </div>
-            </>
+            </div>
           ) : (
             <>
               <p className="mt-3 text-[13.5px] text-slate-400">You&apos;re done for today.</p>
@@ -476,21 +481,23 @@ export function TodayView() {
           )}
 
           {/* AI Insight */}
-          <div className="mt-auto pt-5">
-            <div className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3.5">
+          <div className="mt-10 pt-1">
+            <div className="flex h-[128px] items-stretch gap-3 overflow-hidden rounded-xl bg-slate-50 px-4 py-3">
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50">
                 <Lightbulb className="h-3.5 w-3.5 text-emerald-600" />
               </div>
-              <div className="min-w-0">
+              <div className="flex h-full min-w-0 flex-1 flex-col">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-400">AI Insight</p>
-                <p className="mt-1 text-[13px] leading-[1.5] text-slate-600">{focusInsightPrimary}</p>
-                {showFocusInsightExpanded && focusInsightSecondary ? (
-                  <p className="mt-1 text-[13px] leading-[1.5] text-slate-600">{focusInsightSecondary}</p>
-                ) : null}
-                {focusInsightSecondary ? (
+                <div className={cn(
+                  "mt-1.5 min-h-0 flex-1 pr-1 text-[13px] leading-[1.5] text-slate-600",
+                  showFocusInsightExpanded ? "overflow-y-auto" : "overflow-hidden"
+                )}>
+                  <p>{showFocusInsightExpanded ? focusInsightFull : focusInsightPreview}</p>
+                </div>
+                {hasExpandableInsight ? (
                   <button
                     type="button"
-                    className="mt-1.5 text-[12px] font-semibold text-emerald-600 hover:text-emerald-700"
+                    className="mt-2 self-start text-[12px] font-semibold text-emerald-600 hover:text-emerald-700"
                     onClick={() => setShowFocusInsightExpanded((p) => !p)}
                   >
                     {showFocusInsightExpanded ? "Show less" : "Read more"}
