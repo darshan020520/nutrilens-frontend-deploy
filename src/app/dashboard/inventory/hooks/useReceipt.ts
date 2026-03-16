@@ -5,6 +5,7 @@ import { api, getEndpoint } from "@/lib/api";
 import { toast } from "sonner";
 import {
   ReceiptUploadResult,
+  ReceiptStatusResponse,
   PendingItem,
   ReceiptPendingItemsResponse,
   ConfirmAndSeedResponse
@@ -45,7 +46,7 @@ export function useUploadReceipt() {
       const { presigned_url, s3_key, receipt_id } = initResponse.data;
 
       // 2. UPLOAD: Go directly to AWS S3
-      // Note: We use the native 'fetch' here, not 'api' (axios), 
+      // Note: We use the native 'fetch' here, not 'api' (axios),
       // because we don't want our Auth headers or base URL sent to Amazon.
       const uploadToS3 = await fetch(presigned_url, {
         method: "PUT",
@@ -59,13 +60,38 @@ export function useUploadReceipt() {
         throw new Error("S3 Upload Failed: Check bucket CORS settings.");
       }
 
-      // 3. PROCESS: Trigger the AI logic
-      const processResponse = await api.post(getEndpoint("/receipt/process"), {
+      // 3. PROCESS: Trigger the AI logic (now async - returns 202 immediately)
+      await api.post(getEndpoint("/receipt/process"), {
         receipt_id: receipt_id,
         s3_key: s3_key,
       });
 
-      return processResponse.data;
+      // 4. POLL: Wait for processing to complete
+      const POLL_INTERVAL_MS = 4000;
+      const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+      const startTime = Date.now();
+
+      while (true) {
+        if (Date.now() - startTime > TIMEOUT_MS) {
+          throw new Error("Receipt processing is taking longer than expected. Please try again.");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+
+        const statusResponse = await api.get<ReceiptStatusResponse>(
+          getEndpoint(`/receipt/${receipt_id}/status`)
+        );
+        const { status, result, error_message } = statusResponse.data;
+
+        if (status === "completed" && result) {
+          return result;
+        }
+
+        if (status === "failed") {
+          throw new Error(error_message || "Receipt processing failed");
+        }
+        // status is "uploaded" or "processing" — keep polling
+      }
     },
     onSuccess: () => {
       toast.success("AI is processing your receipt!");

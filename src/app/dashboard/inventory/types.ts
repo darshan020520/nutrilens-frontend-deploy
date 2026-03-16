@@ -87,19 +87,46 @@ export interface ReceiptUploadResult {
   total_items: number;
   auto_added_count: number;
   auto_added: Array<{
+    item_id: number;
     item_name: string;
-    quantity: number;
-    unit: string;
+    quantity_grams: number;
+    original_quantity: number;
+    original_unit: string;
+    confidence: number;
+    input: string;
   }>;
   needs_confirmation_count: number;
-  needs_confirmation: Array<{
-    item_name: string;
-    quantity: number;
-    unit: string;
-    suggested_item_id: number | null;
-    suggested_item_name: string | null;
-    confidence: number;
-  }>;
+  needs_confirmation: Array<
+    | {
+        success: true;
+        item_id: number;
+        item_name: string;
+        quantity_grams: number;
+        original_quantity: number;
+        original_unit: string;
+        match_strategy: string;
+        match_confidence: number;
+        confidence: number;
+        conversion_method: string;
+        conversion_confidence: number;
+        input: string;
+      }
+    | {
+        success: false;
+        error: string;
+        unknown_item: {
+          normalized_name: string;
+          category: string;
+          confidence: number;
+        } | null;
+        input: string;
+        extracted: {
+          item_text: string;
+          quantity: number;
+          unit: string;
+        };
+      }
+  >;
 }
 
 export interface PendingItem {
@@ -137,6 +164,13 @@ export interface ReceiptPendingItemsResponse {
   receipt_id: number;
   count: number;
   items: EnrichedPendingItem[];
+}
+
+export interface ReceiptStatusResponse {
+  receipt_id: number;
+  status: "uploaded" | "processing" | "completed" | "failed";
+  result: ReceiptUploadResult | null;
+  error_message: string | null;
 }
 
 export interface ConfirmAndSeedResponse {

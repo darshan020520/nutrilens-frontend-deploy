@@ -1,7 +1,7 @@
 // frontend/src/app/dashboard/meals/components/RecipeBrowser.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 import { Search, Clock, Utensils, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { api, getEndpoint } from "@/lib/api";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 interface Recipe {
   id: number;
@@ -73,6 +74,61 @@ type RecipeQueryParams = {
   meal_time?: string;
   max_prep_time?: number;
 };
+
+interface RecipeImageProps {
+  imageUrl?: string | null;
+  alt: string;
+  containerClassName: string;
+  sizes: string;
+}
+
+function RecipeImage({ imageUrl, alt, containerClassName, sizes }: RecipeImageProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const resolvedImageUrl = resolveImageUrl(imageUrl);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [resolvedImageUrl]);
+
+  const shouldShowImage = !!resolvedImageUrl && !hasError;
+
+  return (
+    <div className={containerClassName}>
+      {shouldShowImage ? (
+        <>
+          {!isLoaded && (
+            <div className="absolute inset-0 p-4">
+              <Skeleton className="h-full w-full rounded-none" />
+            </div>
+          )}
+          <Image
+            src={resolvedImageUrl}
+            alt={alt}
+            fill
+            unoptimized
+            className="object-cover"
+            sizes={sizes}
+            onLoad={() => setIsLoaded(true)}
+            onError={(event) => {
+              const failedSrc = event.currentTarget.currentSrc || event.currentTarget.src;
+              console.error(
+                `[RecipeImage] Failed to load recipe image raw="${String(imageUrl)}" resolved="${String(resolvedImageUrl)}" failedSrc="${failedSrc}"`
+              );
+              setHasError(true);
+              setIsLoaded(false);
+            }}
+          />
+        </>
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <Utensils className="h-12 w-12 text-primary/40" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function RecipeBrowser() {
   const [filters, setFilters] = useState<RecipeFilters>({
@@ -287,21 +343,12 @@ export function RecipeBrowser() {
             onClick={() => setSelectedRecipe(recipe)}
           >
             {/* Recipe Image */}
-            <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5">
-              {recipe.image_url ? (
-                <Image
-                  src={recipe.image_url}
-                  alt={recipe.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <Utensils className="h-12 w-12 text-primary/40" />
-                </div>
-              )}
-            </div>
+            <RecipeImage
+              imageUrl={recipe.image_url}
+              alt={recipe.title}
+              containerClassName="relative aspect-video overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
 
             <CardHeader className="pb-3">
               <h3 className="font-semibold line-clamp-2">{recipe.title}</h3>
@@ -407,17 +454,12 @@ export function RecipeBrowser() {
           {recipeDetails && (
             <div className="space-y-6">
               {/* Hero Image */}
-              {recipeDetails.image_url && (
-                <div className="relative h-56 w-full overflow-hidden rounded-lg">
-                  <Image
-                    src={recipeDetails.image_url}
-                    alt={recipeDetails.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 768px"
-                  />
-                </div>
-              )}
+              <RecipeImage
+                imageUrl={recipeDetails.image_url}
+                alt={recipeDetails.title}
+                containerClassName="relative h-56 w-full overflow-hidden rounded-lg bg-gradient-to-br from-primary/20 to-primary/5"
+                sizes="(max-width: 768px) 100vw, 768px"
+              />
 
               {/* Macros */}
               <div>

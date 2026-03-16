@@ -5,26 +5,31 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, UtensilsCrossed, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  UtensilsCrossed,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  AlertCircle,
+} from "lucide-react";
 import { api, getEndpoint } from "@/lib/api";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 
 interface ExternalMealDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mealLogId?: number | null; // If provided, will replace this meal
-  mealType?: string; // Meal type (breakfast/lunch/dinner)
+  mealLogId?: number | null;
+  mealType?: string;
   onSuccess?: () => void;
 }
 
@@ -47,466 +52,377 @@ interface ExternalMealLogResult {
   remaining_calories?: number;
 }
 
-type ApiErrorLike = {
-  response?: {
-    data?: {
-      detail?: string;
-    };
-  };
-};
-
+type ApiErrorLike = { response?: { data?: { detail?: string } } };
 type Step = "input" | "estimate" | "success";
 
-export default function ExternalMealDialog({
-  open,
-  onOpenChange,
-  mealLogId,
-  mealType,
-  onSuccess,
-}: ExternalMealDialogProps) {
+const SERIF = "Georgia, 'Times New Roman', serif";
+const MACRO_COLORS = {
+  calories: { bg: "bg-emerald-50", text: "text-emerald-800", label: "text-emerald-600" },
+  protein: { bg: "bg-[#EEF4FF]", text: "text-[#3B6FD4]", label: "text-[#5B8DEF]" },
+  carbs: { bg: "bg-[#FFF7ED]", text: "text-[#C67A1A]", label: "text-[#E8913A]" },
+  fat: { bg: "bg-[#FEF3F2]", text: "text-[#C4462B]", label: "text-[#D4644A]" },
+};
+
+export default function ExternalMealDialog({ open, onOpenChange, mealLogId, mealType, onSuccess }: ExternalMealDialogProps) {
   const queryClient = useQueryClient();
-  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Step management
-  const [currentStep, setCurrentStep] = useState<Step>("input");
-
-  // Form data
+  const [step, setStep] = useState<Step>("input");
   const [dishName, setDishName] = useState("");
   const [portionSize, setPortionSize] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [cuisineType, setCuisineType] = useState("");
   const [notes, setNotes] = useState("");
-
-  // Estimated nutrition
-  const [estimatedNutrition, setEstimatedNutrition] = useState<EstimatedNutrition | null>(null);
-
-  // Log response data (for success step)
+  const [estimated, setEstimated] = useState<EstimatedNutrition | null>(null);
   const [logResult, setLogResult] = useState<ExternalMealLogResult | null>(null);
+  const [calories, setCalories] = useState(0);
+  const [proteinG, setProteinG] = useState(0);
+  const [carbsG, setCarbsG] = useState(0);
+  const [fatG, setFatG] = useState(0);
+  const [fiberG, setFiberG] = useState(0);
 
-  // Editable macros (user can adjust after estimate)
-  const [calories, setCalories] = useState<number>(0);
-  const [proteinG, setProteinG] = useState<number>(0);
-  const [carbsG, setCarbsG] = useState<number>(0);
-  const [fatG, setFatG] = useState<number>(0);
-  const [fiberG, setFiberG] = useState<number>(0);
-
-  // Get nutrition estimate from LLM
-  const estimateMutation = useMutation({
+  const estimateMut = useMutation({
     mutationFn: async () => {
-      const response = await api.post(getEndpoint("/tracking/estimate-external-meal"), {
-        dish_name: dishName,
-        portion_size: portionSize,
-        restaurant_name: restaurantName || null,
-        cuisine_type: cuisineType || null,
+      const r = await api.post(getEndpoint("/tracking/estimate-external-meal"), {
+        dish_name: dishName, portion_size: portionSize,
+        restaurant_name: restaurantName || null, cuisine_type: cuisineType || null,
       });
-      return response.data;
+      return r.data;
     },
-    onSuccess: (data) => {
-      setEstimatedNutrition(data);
-      // Set editable values
-      setCalories(Math.round(data.calories));
-      setProteinG(Math.round(data.protein_g));
-      setCarbsG(Math.round(data.carbs_g));
-      setFatG(Math.round(data.fat_g));
-      setFiberG(Math.round(data.fiber_g));
-      setCurrentStep("estimate");
+    onSuccess: (d) => {
+      setEstimated(d);
+      setCalories(Math.round(d.calories)); setProteinG(Math.round(d.protein_g));
+      setCarbsG(Math.round(d.carbs_g)); setFatG(Math.round(d.fat_g)); setFiberG(Math.round(d.fiber_g));
+      setStep("estimate");
     },
-    onError: (error: unknown) => {
-      const detail = (error as ApiErrorLike)?.response?.data?.detail;
-      toast.error(typeof detail === "string" ? detail : "Failed to estimate nutrition");
+    onError: (e: unknown) => {
+      const d = (e as ApiErrorLike)?.response?.data?.detail;
+      toast.error(typeof d === "string" ? d : "Failed to estimate nutrition");
     },
   });
 
-  // Log the external meal
-  const logMealMutation = useMutation({
+  const logMut = useMutation({
     mutationFn: async () => {
-      const response = await api.post(getEndpoint("/tracking/log-external-meal"), {
-        dish_name: dishName,
-        portion_size: portionSize,
-        restaurant_name: restaurantName || null,
-        cuisine_type: cuisineType || null,
-        calories: calories,
-        protein_g: proteinG,
-        carbs_g: carbsG,
-        fat_g: fatG,
-        fiber_g: fiberG,
-        meal_log_id_to_replace: mealLogId || null,
-        meal_type: mealLogId ? null : mealType,
+      const r = await api.post(getEndpoint("/tracking/log-external-meal"), {
+        dish_name: dishName, portion_size: portionSize,
+        restaurant_name: restaurantName || null, cuisine_type: cuisineType || null,
+        calories, protein_g: proteinG, carbs_g: carbsG, fat_g: fatG, fiber_g: fiberG,
+        meal_log_id_to_replace: mealLogId || null, meal_type: mealLogId ? null : mealType,
         notes: notes || null,
       });
-      return response.data;
+      return r.data;
     },
-    onSuccess: (data: ExternalMealLogResult) => {
-      // Invalidate queries to refresh data
+    onSuccess: (d: ExternalMealLogResult) => {
       queryClient.invalidateQueries({ queryKey: ["tracking", "today"] });
       queryClient.invalidateQueries({ queryKey: ["meal-plan", "current"] });
-
-      // Show success toast
-      if (data.replaced_meal) {
-        toast.success(`Replaced "${data.original_recipe}" with external meal`);
-      } else {
-        toast.success("External meal logged successfully");
-      }
-
-      // If we have recommendations or insights, show success step
-      if ((data.recommendations && data.recommendations.length > 0) ||
-          (data.insights && data.insights.length > 0)) {
-        setLogResult(data);
-        setCurrentStep("success");
-      } else {
-        handleClose();
-        onSuccess?.();
-      }
+      if (d.replaced_meal) toast.success(`Replaced "${d.original_recipe}" with external meal`);
+      else toast.success("External meal logged successfully");
+      if ((d.recommendations?.length ?? 0) > 0 || (d.insights?.length ?? 0) > 0) {
+        setLogResult(d); setStep("success");
+      } else { handleClose(); onSuccess?.(); }
     },
-    onError: (error: unknown) => {
-      const detail = (error as ApiErrorLike)?.response?.data?.detail;
-      toast.error(typeof detail === "string" ? detail : "Failed to log external meal");
+    onError: (e: unknown) => {
+      const d = (e as ApiErrorLike)?.response?.data?.detail;
+      toast.error(typeof d === "string" ? d : "Failed to log external meal");
     },
   });
 
   const handleEstimate = () => {
-    if (!dishName.trim()) {
-      toast.error("Please enter a dish name");
-      return;
-    }
-    if (!portionSize.trim()) {
-      toast.error("Please enter a portion size");
-      return;
-    }
-    estimateMutation.mutate();
+    if (!dishName.trim()) { toast.error("Please enter a dish name"); return; }
+    if (!portionSize.trim()) { toast.error("Please enter a portion size"); return; }
+    estimateMut.mutate();
   };
 
-  const handleConfirmAndLog = () => {
-    if (calories <= 0) {
-      toast.error("Calories must be greater than 0");
-      return;
-    }
-    logMealMutation.mutate();
+  const handleLog = () => {
+    if (calories <= 0) { toast.error("Calories must be greater than 0"); return; }
+    logMut.mutate();
   };
 
   const handleClose = () => {
-    setCurrentStep("input");
-    setDishName("");
-    setPortionSize("");
-    setRestaurantName("");
-    setCuisineType("");
-    setNotes("");
-    setEstimatedNutrition(null);
-    setLogResult(null);
-    setCalories(0);
-    setProteinG(0);
-    setCarbsG(0);
-    setFatG(0);
-    setFiberG(0);
+    setStep("input"); setDishName(""); setPortionSize(""); setRestaurantName("");
+    setCuisineType(""); setNotes(""); setEstimated(null); setLogResult(null);
+    setCalories(0); setProteinG(0); setCarbsG(0); setFatG(0); setFiberG(0);
     onOpenChange(false);
   };
 
-  const handleBack = () => {
-    if (currentStep === "estimate") {
-      setCurrentStep("input");
-    }
-  };
+  useEffect(() => { if (open && scrollRef.current) scrollRef.current.scrollTop = 0; }, [open, step]);
 
-  useEffect(() => {
-    if (!open) return;
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = 0;
-    }
-  }, [open, currentStep]);
+  const inputCls = "h-10 rounded-xl border-slate-200 bg-white px-3.5 text-[14px] text-slate-900 placeholder:text-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10";
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden p-0">
-        <div className="flex max-h-[90vh] flex-col">
-          <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
-            <DialogTitle className="flex items-center gap-2">
-              <UtensilsCrossed className="h-5 w-5" />
-              {mealLogId ? "Replace with External Meal" : "Log External Meal"}
-            </DialogTitle>
-            <DialogDescription>
-              {currentStep === "input" && "Enter details about what you ate"}
-              {currentStep === "estimate" && "Review and adjust AI-estimated nutrition"}
-              {currentStep === "success" && "Meal logged! Here are your recommendations"}
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent
+        overlayClassName="bg-slate-950/60 backdrop-blur-[3px]"
+        className="overflow-hidden border-0 p-0 sm:max-w-[560px]"
+        style={{ background: "#FAFAF7", boxShadow: "0 32px 80px -30px rgba(15,23,42,0.5), 0 0 0 1px rgba(0,0,0,0.04)" }}
+      >
+        <VisuallyHidden.Root asChild>
+          <DialogTitle>Log External Meal</DialogTitle>
+        </VisuallyHidden.Root>
 
-          <div ref={scrollAreaRef} className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-            {/* Step 1: Input Details */}
-            {currentStep === "input" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dish-name">
-                    Dish Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="dish-name"
-                    placeholder="e.g., Chicken Tikka Masala"
-                    value={dishName}
-                    onChange={(e) => setDishName(e.target.value)}
-                    disabled={estimateMutation.isPending}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="portion-size">
-                    Portion Size <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="portion-size"
-                    placeholder="e.g., 1 large plate, 300g"
-                    value={portionSize}
-                    onChange={(e) => setPortionSize(e.target.value)}
-                    disabled={estimateMutation.isPending}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant">Restaurant Name (optional)</Label>
-                  <Input
-                    id="restaurant"
-                    placeholder="e.g., Indian Palace"
-                    value={restaurantName}
-                    onChange={(e) => setRestaurantName(e.target.value)}
-                    disabled={estimateMutation.isPending}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cuisine">Cuisine Type (optional)</Label>
-                  <Input
-                    id="cuisine"
-                    placeholder="e.g., Indian, Italian, Chinese"
-                    value={cuisineType}
-                    onChange={(e) => setCuisineType(e.target.value)}
-                    disabled={estimateMutation.isPending}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Any additional notes..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    disabled={estimateMutation.isPending}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Review Estimate */}
-            {currentStep === "estimate" && estimatedNutrition && (
-              <div className="space-y-4">
-                {/* AI Confidence Badge */}
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="flex items-center justify-between">
-                      <span>AI Estimation Confidence</span>
-                      <Badge variant={estimatedNutrition.confidence > 0.7 ? "default" : "secondary"}>
-                        {Math.round(estimatedNutrition.confidence * 100)}%
-                      </Badge>
-                    </div>
-                    <p className="text-xs mt-2 text-muted-foreground">
-                      {estimatedNutrition.reasoning}
-                    </p>
-                  </AlertDescription>
-                </Alert>
-
-                {/* Meal Summary */}
-                <div className="bg-muted p-4 rounded-lg space-y-2">
-                  <h4 className="font-semibold">{dishName}</h4>
-                  <p className="text-sm text-muted-foreground">{portionSize}</p>
-                  {restaurantName && (
-                    <p className="text-sm text-muted-foreground">at {restaurantName}</p>
-                  )}
-                </div>
-
-                {/* Editable Macros */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold">Estimated Nutrition</h4>
-                    <span className="text-xs text-muted-foreground">
-                      You can adjust these values
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="calories">Calories (kcal)</Label>
-                      <Input
-                        id="calories"
-                        type="number"
-                        value={calories}
-                        onChange={(e) => setCalories(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="protein">Protein (g)</Label>
-                      <Input
-                        id="protein"
-                        type="number"
-                        value={proteinG}
-                        onChange={(e) => setProteinG(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="carbs">Carbs (g)</Label>
-                      <Input
-                        id="carbs"
-                        type="number"
-                        value={carbsG}
-                        onChange={(e) => setCarbsG(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="fat">Fat (g)</Label>
-                      <Input
-                        id="fat"
-                        type="number"
-                        value={fatG}
-                        onChange={(e) => setFatG(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="fiber">Fiber (g)</Label>
-                      <Input
-                        id="fiber"
-                        type="number"
-                        value={fiberG}
-                        onChange={(e) => setFiberG(Number(e.target.value))}
-                        min={0}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Visual Macro Display */}
-                  <div className="grid grid-cols-4 gap-2 mt-4">
-                    <div className="text-center p-3 bg-accent rounded-lg">
-                      <div className="text-2xl font-bold">{calories}</div>
-                      <div className="text-xs text-muted-foreground">Calories</div>
-                    </div>
-                    <div className="text-center p-3 bg-accent rounded-lg">
-                      <div className="text-2xl font-bold">{proteinG}g</div>
-                      <div className="text-xs text-muted-foreground">Protein</div>
-                    </div>
-                    <div className="text-center p-3 bg-accent rounded-lg">
-                      <div className="text-2xl font-bold">{carbsG}g</div>
-                      <div className="text-xs text-muted-foreground">Carbs</div>
-                    </div>
-                    <div className="text-center p-3 bg-accent rounded-lg">
-                      <div className="text-2xl font-bold">{fatG}g</div>
-                      <div className="text-xs text-muted-foreground">Fat</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Success with Recommendations */}
-            {currentStep === "success" && logResult && (
-              <div className="space-y-4">
-                {/* Success confirmation */}
-                <Alert>
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription>
-                    <span className="font-medium">{dishName}</span> logged ({calories} cal)
-                  </AlertDescription>
-                </Alert>
-
-                {/* Insights */}
-                {logResult.insights && logResult.insights.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Insights</h4>
-                    <ul className="space-y-1">
-                      {logResult.insights.map((insight: string, idx: number) => (
-                        <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="mt-0.5">-</span>
-                          <span>{insight}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Recommendations */}
-                {logResult.recommendations && logResult.recommendations.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Recommendations</h4>
-                    <div className="space-y-2">
-                      {logResult.recommendations.map((rec: string, idx: number) => (
-                        <div key={idx} className="p-3 bg-accent rounded-lg text-sm">
-                          {rec}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Remaining calories */}
-                {logResult.remaining_calories !== undefined && (
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <div className="text-2xl font-bold">{Math.round(logResult.remaining_calories)}</div>
-                    <div className="text-xs text-muted-foreground">Calories remaining today</div>
-                  </div>
-                )}
-              </div>
-            )}
+        {/* ── Header ── */}
+        <div className="border-b border-slate-100 px-6 pb-4 pt-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+              <UtensilsCrossed className="h-[18px] w-[18px] text-white" />
+            </div>
+            <div>
+              <h2 className="text-[19px] font-medium tracking-[-0.01em] text-slate-900" style={{ fontFamily: SERIF }}>
+                {mealLogId ? "Replace with External Meal" : "Log External Meal"}
+              </h2>
+              <p className="mt-0.5 text-[13px] text-slate-400">
+                {step === "input" && "Enter details about what you ate"}
+                {step === "estimate" && "Review and adjust AI-estimated nutrition"}
+                {step === "success" && "Meal logged — here are your insights"}
+              </p>
+            </div>
           </div>
 
-          {/* Footer Actions */}
-          <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
-            {currentStep === "input" && (
+          {/* Step indicator */}
+          {step !== "success" && (
+            <div className="mt-4 flex items-center gap-2">
+              {["Details", "Review"].map((label, i) => {
+                const active = (i === 0 && step === "input") || (i === 1 && step === "estimate");
+                const done = (i === 0 && step === "estimate");
+                return (
+                  <div key={label} className="flex items-center gap-2">
+                    {i > 0 && <div className="h-px w-6 bg-slate-200" />}
+                    <div className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold transition-all",
+                      done ? "bg-emerald-100 text-emerald-600"
+                        : active ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-400"
+                    )}>
+                      {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
+                    </div>
+                    <span className={cn("text-[12px] font-medium", active || done ? "text-slate-700" : "text-slate-400")}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Body ── */}
+        <div ref={scrollRef} className="max-h-[60vh] overflow-y-auto px-6 py-5">
+
+          {/* Step 1: Input */}
+          {step === "input" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-[12.5px] font-medium text-slate-600">
+                    Dish Name <span className="text-red-400">*</span>
+                  </Label>
+                  <Input placeholder="e.g., Chicken Tikka Masala" value={dishName}
+                    onChange={(e) => setDishName(e.target.value)} disabled={estimateMut.isPending}
+                    className={inputCls} />
+                </div>
+
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-[12.5px] font-medium text-slate-600">
+                    Portion Size <span className="text-red-400">*</span>
+                  </Label>
+                  <Input placeholder="e.g., 1 large plate, 300g" value={portionSize}
+                    onChange={(e) => setPortionSize(e.target.value)} disabled={estimateMut.isPending}
+                    className={inputCls} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[12.5px] font-medium text-slate-600">Restaurant</Label>
+                  <Input placeholder="e.g., Indian Palace" value={restaurantName}
+                    onChange={(e) => setRestaurantName(e.target.value)} disabled={estimateMut.isPending}
+                    className={inputCls} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[12.5px] font-medium text-slate-600">Cuisine Type</Label>
+                  <Input placeholder="e.g., Indian, Italian" value={cuisineType}
+                    onChange={(e) => setCuisineType(e.target.value)} disabled={estimateMut.isPending}
+                    className={inputCls} />
+                </div>
+
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-[12.5px] font-medium text-slate-600">Notes</Label>
+                  <Textarea placeholder="Any additional notes..." value={notes}
+                    onChange={(e) => setNotes(e.target.value)} rows={2} disabled={estimateMut.isPending}
+                    className="resize-none rounded-xl border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 placeholder:text-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Review Estimate */}
+          {step === "estimate" && estimated && (
+            <div className="space-y-5">
+              {/* Meal summary */}
+              <div className="rounded-xl bg-white p-4">
+                <p className="text-[15px] font-semibold text-slate-800">{dishName}</p>
+                <p className="mt-0.5 text-[13px] text-slate-400">
+                  {portionSize}{restaurantName ? ` · ${restaurantName}` : ""}
+                </p>
+              </div>
+
+              {/* Confidence */}
+              <div className="rounded-xl bg-slate-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                    <span className="text-[12px] font-semibold text-slate-600">AI Estimation</span>
+                  </div>
+                  <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                    estimated.confidence > 0.7 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>
+                    {Math.round(estimated.confidence * 100)}% confidence
+                  </span>
+                </div>
+                <p className="mt-2 text-[12.5px] leading-[1.55] text-slate-400">{estimated.reasoning}</p>
+              </div>
+
+              {/* Macro display — visual */}
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { key: "calories" as const, val: calories, unit: "", label: "Calories" },
+                  { key: "protein" as const, val: proteinG, unit: "g", label: "Protein" },
+                  { key: "carbs" as const, val: carbsG, unit: "g", label: "Carbs" },
+                  { key: "fat" as const, val: fatG, unit: "g", label: "Fat" },
+                ].map((m) => (
+                  <div key={m.key} className={cn("rounded-xl p-3 text-center", MACRO_COLORS[m.key].bg)}>
+                    <p className={cn("text-[22px] font-semibold leading-none", MACRO_COLORS[m.key].text)}
+                      style={{ fontFamily: SERIF }}>
+                      {m.val}{m.unit}
+                    </p>
+                    <p className={cn("mt-1 text-[10.5px] font-semibold", MACRO_COLORS[m.key].label)}>{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Editable fields */}
+              <div>
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-400">Adjust values</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    { label: "Cal", val: calories, set: setCalories },
+                    { label: "Protein", val: proteinG, set: setProteinG },
+                    { label: "Carbs", val: carbsG, set: setCarbsG },
+                    { label: "Fat", val: fatG, set: setFatG },
+                    { label: "Fiber", val: fiberG, set: setFiberG },
+                  ].map((f) => (
+                    <div key={f.label} className="space-y-1">
+                      <Label className="text-[10px] font-medium text-slate-400">{f.label}</Label>
+                      <Input type="number" value={f.val} onChange={(e) => f.set(Number(e.target.value))} min={0}
+                        className="h-9 rounded-lg border-slate-200 bg-white px-2 text-center text-[13px] text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/10" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Success */}
+          {step === "success" && logResult && (
+            <div className="space-y-5">
+              {/* Confirmation */}
+              <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100">
+                  <CheckCircle2 className="h-[18px] w-[18px] text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-emerald-800">{dishName} logged</p>
+                  <p className="text-[12px] text-emerald-600">{calories} calories</p>
+                </div>
+              </div>
+
+              {/* Remaining calories */}
+              {logResult.remaining_calories !== undefined && (
+                <div className="rounded-xl bg-white p-4 text-center">
+                  <p className="text-[28px] font-semibold text-slate-800" style={{ fontFamily: SERIF }}>
+                    {Math.round(logResult.remaining_calories)}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-slate-400">Calories remaining today</p>
+                </div>
+              )}
+
+              {/* Insights */}
+              {logResult.insights && logResult.insights.length > 0 && (
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-500">Insights</p>
+                  <div className="space-y-2">
+                    {logResult.insights.map((s, i) => (
+                      <p key={i} className="flex items-start gap-2 text-[13px] leading-[1.55] text-slate-600">
+                        <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-slate-400" />
+                        {s}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {logResult.recommendations && logResult.recommendations.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-500">Recommendations</p>
+                  {logResult.recommendations.map((r, i) => (
+                    <div key={i} className="rounded-xl bg-white p-3.5 text-[13px] leading-[1.55] text-slate-600">
+                      {r}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="border-t border-slate-100 px-6 py-4">
+          <div className="flex justify-end gap-2.5">
+            {step === "input" && (
               <>
-                <Button variant="outline" onClick={handleClose}>
+                <Button variant="outline" onClick={handleClose}
+                  className="h-10 rounded-xl border-slate-200 px-4 text-[13px] text-slate-500 hover:bg-slate-50">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleEstimate}
-                  disabled={estimateMutation.isPending || !dishName.trim() || !portionSize.trim()}
-                >
-                  {estimateMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Button onClick={handleEstimate}
+                  disabled={estimateMut.isPending || !dishName.trim() || !portionSize.trim()}
+                  className="h-10 rounded-xl px-5 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(27,125,90,0.2)]"
+                  style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+                  {estimateMut.isPending ? (
+                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Estimating...</>
+                  ) : (
+                    <><Sparkles className="mr-2 h-3.5 w-3.5" />Get AI Estimate</>
                   )}
-                  Get AI Estimate
                 </Button>
               </>
             )}
 
-            {currentStep === "estimate" && (
+            {step === "estimate" && (
               <>
-                <Button variant="outline" onClick={handleBack}>
-                  Back
+                <Button variant="outline" onClick={() => setStep("input")}
+                  className="h-10 rounded-xl border-slate-200 px-4 text-[13px] text-slate-500 hover:bg-slate-50">
+                  <ArrowLeft className="mr-2 h-3.5 w-3.5" />Back
                 </Button>
-                <Button
-                  onClick={handleConfirmAndLog}
-                  disabled={logMealMutation.isPending || calories <= 0}
-                >
-                  {logMealMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Button onClick={handleLog} disabled={logMut.isPending || calories <= 0}
+                  className="h-10 rounded-xl px-5 text-[13px] font-semibold text-white shadow-[0_2px_10px_rgba(27,125,90,0.2)]"
+                  style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+                  {logMut.isPending ? (
+                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Logging...</>
+                  ) : (
+                    <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />{mealLogId ? "Replace & Log" : "Log Meal"}</>
                   )}
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  {mealLogId ? "Replace & Log Meal" : "Log Meal"}
                 </Button>
               </>
             )}
 
-            {currentStep === "success" && (
-              <Button onClick={() => { handleClose(); onSuccess?.(); }}>
-                Done
+            {step === "success" && (
+              <Button onClick={() => { handleClose(); onSuccess?.(); }}
+                className="h-10 rounded-xl px-5 text-[13px] font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, #1B7D5A, #22956B)" }}>
+                Done <ArrowRight className="ml-2 h-3.5 w-3.5" />
               </Button>
             )}
-          </DialogFooter>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

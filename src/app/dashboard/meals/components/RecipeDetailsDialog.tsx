@@ -8,9 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Utensils } from "lucide-react";
 import { api, getEndpoint } from "@/lib/api";
 import Image from "next/image";
+import { resolveImageUrl } from "@/lib/imageUrl";
 
 interface RecipeDetails {
   id: number;
@@ -53,6 +55,10 @@ export default function RecipeDetailsDialog({
   const [recipe, setRecipe] = useState<RecipeDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const resolvedImageUrl = resolveImageUrl(recipe?.image_url ?? null);
 
   const fetchRecipeDetails = useCallback(async () => {
     if (!recipeId) return;
@@ -82,6 +88,11 @@ export default function RecipeDetailsDialog({
     }
   }, [fetchRecipeDetails, open, recipeId]);
 
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageFailed(false);
+  }, [resolvedImageUrl]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -100,17 +111,38 @@ export default function RecipeDetailsDialog({
           <>
             <div className="space-y-6">
               {/* Image */}
-              {recipe.image_url && (
-                <div className="relative h-64 w-full overflow-hidden rounded-lg">
+              {resolvedImageUrl && !imageFailed ? (
+                <div className="relative h-64 w-full overflow-hidden rounded-lg bg-accent/40">
+                  {!imageLoaded && (
+                    <div className="absolute inset-0 p-4">
+                      <Skeleton className="h-full w-full" />
+                    </div>
+                  )}
                   <Image
-                    src={recipe.image_url}
+                    src={resolvedImageUrl}
                     alt={recipe.title}
                     fill
+                    unoptimized
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 768px"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={(event) => {
+                      const failedSrc = event.currentTarget.currentSrc || event.currentTarget.src;
+                      console.error(
+                        `[RecipeDetailsDialog] Failed to load recipe image recipeId=${recipe.id} raw="${String(
+                          recipe.image_url
+                        )}" resolved="${String(resolvedImageUrl)}" failedSrc="${failedSrc}"`
+                      );
+                      setImageFailed(true);
+                      setImageLoaded(false);
+                    }}
                   />
                 </div>
-              )}
+              ) : recipe.image_url ? (
+                <div className="flex h-64 w-full items-center justify-center rounded-lg bg-accent/30">
+                  <Utensils className="h-12 w-12 text-primary/40" />
+                </div>
+              ) : null}
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2">
