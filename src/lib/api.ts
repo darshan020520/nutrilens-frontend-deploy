@@ -36,6 +36,27 @@ export const authAPI = {
     const response = await api.post(getEndpoint("/auth/resend-verification"), { email });
     return response.data;
   },
+
+  updateWhatsappNumber: async (whatsapp_number: string) => {
+    const response = await api.put(getEndpoint("/auth/whatsapp-number"), { whatsapp_number });
+    return response.data;
+  },
+
+  getNotificationPreferences: async () => {
+    const response = await api.get(getEndpoint("/auth/notification-preferences"));
+    return response.data;
+  },
+
+  updateNotificationPreferences: async (data: {
+    enabled_providers?: string[];
+    enabled_types?: string[];
+    quiet_hours_start?: number;
+    quiet_hours_end?: number;
+    timezone?: string;
+  }) => {
+    const response = await api.put(getEndpoint("/auth/notification-preferences"), data);
+    return response.data;
+  },
 };
 
 export const onboardingAPI = {

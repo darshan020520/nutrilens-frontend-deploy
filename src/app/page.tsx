@@ -204,7 +204,7 @@ export default function Home() {
             <motion.div className="relative" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: EASE, delay: 0.1 }}>
               <motion.div style={{ x: pxs, y: pys }}
                 className="relative rounded-2xl p-5"
-                {...{ style: { x: pxs, y: pys, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, padding: 24 } } as any}>
+                {...{ style: { x: pxs, y: pys, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderRadius: 20, padding: 24 } } as Record<string, unknown>}>
 
                 {/* Header */}
                 <div className="mb-5 flex items-center justify-between">

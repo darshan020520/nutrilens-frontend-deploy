@@ -7,6 +7,8 @@ const endpointMap: Record<string, string> = {
   "/auth/refresh": "/auth/v2/refresh",
   "/auth/verify-email": "/auth/v2/verify-email",
   "/auth/resend-verification": "/auth/v2/resend-verification",
+  "/auth/whatsapp-number": "/auth/v2/whatsapp-number",
+  "/auth/notification-preferences": "/auth/v2/notification-preferences",
 
   "/onboarding/basic-info": "/onboarding/v2/basic-info",
   "/onboarding/goal-selection": "/onboarding/v2/goal-selection",
